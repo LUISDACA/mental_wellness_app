@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/models/post.dart';
@@ -41,7 +42,7 @@ class PostService {
       final path = '${user.id}/${_uuid()}_${_safeName(file.name)}';
       await _sb.storage.from(_bucket).uploadBinary(
             path,
-            bytes,
+            bytes as Uint8List,
             fileOptions: FileOptions(
               contentType: _contentType(ext),
               upsert: false,
@@ -87,7 +88,6 @@ class PostService {
 
   String? publicUrlFor(Post p) {
     if (p.mediaPath == null) return null;
-    // ✅ En supabase_flutter 2.x esto devuelve String directo
     return _sb.storage.from(_bucket).getPublicUrl(p.mediaPath!);
   }
 

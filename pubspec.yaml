@@ -9,6 +9,18 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+    
+
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+
+  file_picker: ^8.0.3
+    
+  http: ^1.2.2
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.1
+  geolocator: ^13.0.2
 
   cupertino_icons: ^1.0.6
   flutter_riverpod: ^2.6.1
@@ -30,9 +42,6 @@ dependencies:
   # Gráficas de evolución
   fl_chart: ^0.68.0
 
-  # Utilidades varias
-  intl: ^0.19.0
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -45,13 +54,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
-  # Descomenta si vas a añadir recursos
-  assets:
-    - assets/
-  # fonts:
-  #   - family: Inter
-  #     fonts:
-  #       - asset: assets/fonts/Inter-Regular.ttf
-  #       - asset: assets/fonts/Inter-Bold.ttf
-  #         weight: 700

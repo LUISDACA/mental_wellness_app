@@ -5,9 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/env.dart';
-import '../../../data/services/gemini_service.dart';
 import '../../../data/services/speech_service.dart';
-import '../../../data/repositories/emotion_repository.dart';
 import '../../providers.dart';
 
 class AnalyzePage extends ConsumerStatefulWidget {

@@ -1,9 +1,6 @@
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../data/repositories/emotion_repository.dart';
-import '../../../core/env.dart';
 import '../../widgets/status_banner.dart';
 
 class HomePage extends StatelessWidget {
@@ -13,6 +10,7 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final sb = Supabase.instance.client;
     final user = sb.auth.currentUser;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Bienestar Emocional')),
       body: Padding(
@@ -21,6 +19,14 @@ class HomePage extends StatelessWidget {
           children: [
             const StatusBanner(),
             const SizedBox(height: 16),
+
+            _NavCard(
+              title: 'Publicaciones',
+              subtitle: 'Comparte y lee aportes de la comunidad',
+              icon: Icons.forum_outlined,
+              onTap: () => context.go('/posts'),
+            ),
+
             _NavCard(
               title: 'Analyze Emotion',
               subtitle: 'Escribe o dicta y analizamos tu emoción con IA',
@@ -39,20 +45,33 @@ class HomePage extends StatelessWidget {
               icon: Icons.chat_bubble_outline,
               onTap: () => context.go('/chat'),
             ),
+
+            // NUEVA OPCIÓN: mapa de centros de ayuda
+            _NavCard(
+              title: 'Centros de ayuda (Mapa)',
+              subtitle: 'Psicología, psiquiatría, hospitales cerca de ti',
+              icon: Icons.map,
+              onTap: () => context.go('/map-help'),
+            ),
+
             _NavCard(
               title: 'SOS',
               subtitle: 'Contactos de ayuda cuando más lo necesitas',
               icon: Icons.sos,
               onTap: () => context.go('/sos'),
             ),
+
             const SizedBox(height: 20),
+
             OutlinedButton(
               onPressed: () async {
+                // Capturamos el router antes del await para evitar el lint
+                final router = GoRouter.of(context);
                 await Supabase.instance.client.auth.signOut();
-                if (context.mounted) context.go('/sign-in');
+                router.go('/sign-in');
               },
               child: const Text('Sign out'),
-            )
+            ),
           ],
         ),
       ),
@@ -65,12 +84,16 @@ class _NavCard extends StatelessWidget {
   final String subtitle;
   final IconData icon;
   final VoidCallback onTap;
-  const _NavCard({required this.title, required this.subtitle, required this.icon, required this.onTap});
+
+  const _NavCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final sb = Supabase.instance.client;
-    final user = sb.auth.currentUser;
     return Card(
       child: ListTile(
         leading: Icon(icon),

@@ -19,14 +19,6 @@ class HomePage extends StatelessWidget {
           children: [
             const StatusBanner(),
             const SizedBox(height: 16),
-
-            _NavCard(
-              title: 'Publicaciones',
-              subtitle: 'Comparte y lee aportes de la comunidad',
-              icon: Icons.forum_outlined,
-              onTap: () => context.go('/posts'),
-            ),
-
             _NavCard(
               title: 'Analyze Emotion',
               subtitle: 'Escribe o dicta y analizamos tu emoción con IA',
@@ -45,24 +37,31 @@ class HomePage extends StatelessWidget {
               icon: Icons.chat_bubble_outline,
               onTap: () => context.go('/chat'),
             ),
-
-            // NUEVA OPCIÓN: mapa de centros de ayuda
             _NavCard(
               title: 'Centros de ayuda (Mapa)',
               subtitle: 'Psicología, psiquiatría, hospitales cerca de ti',
               icon: Icons.map,
               onTap: () => context.go('/map-help'),
             ),
-
             _NavCard(
               title: 'SOS',
               subtitle: 'Contactos de ayuda cuando más lo necesitas',
               icon: Icons.sos,
               onTap: () => context.go('/sos'),
             ),
-
+            _NavCard(
+              title: 'Publicaciones',
+              subtitle: 'Comparte y lee aportes de la comunidad',
+              icon: Icons.forum_outlined,
+              onTap: () => context.go('/posts'),
+            ),
+            _NavCard(
+              title: 'Perfil',
+              subtitle: 'Edita tu nombre, teléfono, foto y dirección',
+              icon: Icons.person_outline,
+              onTap: () => context.go('/profile'),
+            ),
             const SizedBox(height: 20),
-
             OutlinedButton(
               onPressed: () async {
                 // Capturamos el router antes del await para evitar el lint

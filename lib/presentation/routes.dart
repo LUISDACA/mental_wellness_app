@@ -13,6 +13,7 @@ import 'screens/chat/chat_page.dart';
 import 'screens/sos/sos_page.dart';
 import 'screens/map/map_help_page.dart';
 import 'screens/posts/posts_page.dart';
+import 'screens/profile/profile_page.dart';
 
 /// Notificador para refrescar GoRouter cuando cambia el estado de auth.
 class GoRouterRefreshStream extends ChangeNotifier {
@@ -73,6 +74,7 @@ final router = GoRouter(
         GoRoute(path: 'sos', builder: (_, __) => const SosPage()),
         GoRoute(path: 'map-help', builder: (_, __) => const MapHelpPage()),
         GoRoute(path: 'posts', builder: (_, __) => const PostsPage()),
+        GoRoute(path: 'profile', builder: (_, __) => const ProfilePage()),
       ],
     ),
   ],

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Screens
+import 'screens/welcome/welcome_page.dart';
 import 'screens/auth/sign_in_page.dart';
 import 'screens/auth/sign_up_page.dart';
 import 'screens/home/home_page.dart';
@@ -31,20 +32,23 @@ class GoRouterRefreshStream extends ChangeNotifier {
 final _auth = Supabase.instance.client.auth;
 
 final router = GoRouter(
-  // Arranca en Sign In
-  initialLocation: '/sign-in',
+  // ➜ Pantalla inicial
+  initialLocation: '/welcome',
 
-  // Redirección según sesión
+  // Redirección según sesión (protege las rutas internas)
   redirect: (context, state) {
     final loggedIn = _auth.currentSession != null;
     final loc = state.matchedLocation;
-    final isAuthRoute = loc == '/sign-in' || loc == '/sign-up';
 
-    // No logeado → solo puede ver /sign-in o /sign-up
-    if (!loggedIn && !isAuthRoute) return '/sign-in';
+    // Rutas públicas
+    final isPublic =
+        loc == '/welcome' || loc == '/sign-in' || loc == '/sign-up';
 
-    // Logeado → no tiene sentido estar en /sign-in /sign-up
-    if (loggedIn && isAuthRoute) return '/';
+    // No logeado → solo puede ver públicas
+    if (!loggedIn && !isPublic) return '/welcome';
+
+    // Logeado → no tiene sentido estar en páginas públicas
+    if (loggedIn && isPublic) return '/';
 
     return null;
   },
@@ -53,15 +57,10 @@ final router = GoRouter(
   refreshListenable: GoRouterRefreshStream(_auth.onAuthStateChange),
 
   routes: [
-    // Rutas de auth
-    GoRoute(
-      path: '/sign-in',
-      builder: (_, __) => const SignInPage(),
-    ),
-    GoRoute(
-      path: '/sign-up',
-      builder: (_, __) => const SignUpPage(),
-    ),
+    // Públicas
+    GoRoute(path: '/welcome', builder: (_, __) => const WelcomePage()),
+    GoRoute(path: '/sign-in', builder: (_, __) => const SignInPage()),
+    GoRoute(path: '/sign-up', builder: (_, __) => const SignUpPage()),
 
     // App (protegida)
     GoRoute(

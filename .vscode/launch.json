@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+        "name": "Flutter 964bc167bfdb - .env",
+        "request": "launch",
+        "type": "dart",
+        "program": "lib/main.dart",
+        "args": ["--dart-define-from-file=.env"]
+        },
+        {
+        "name": "Flutter (web) - .env",
+        "request": "launch",
+        "type": "dart",
+        "program": "lib/main.dart",
+        "args": ["-d", "chrome", "--dart-define-from-file=.env"]
+        }
+    ]
+}

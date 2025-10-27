@@ -43,7 +43,7 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
     'pharmacy',
     'other',
   };
-  Set<String> _filters = {..._allCats};
+  final Set<String> _filters = {..._allCats};
 
   // Ruta
   TransportMode _mode = TransportMode.walking;

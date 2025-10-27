@@ -479,10 +479,10 @@ class _CongratsBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       color: Colors.green.withOpacity(0.07),
-      child: ListTile(
-        leading: const Icon(Icons.emoji_events, color: Colors.green),
-        title: const Text('¡Buen trabajo!'),
-        subtitle: const Text(
+      child: const ListTile(
+        leading: Icon(Icons.emoji_events, color: Colors.green),
+        title: Text('¡Buen trabajo!'),
+        subtitle: Text(
           'Tu severidad reciente es baja. Mantén las rutinas que te ayudan: respiración, '
           'diario y contacto social positivo.',
         ),

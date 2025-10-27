@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/models/post.dart';
@@ -42,7 +41,7 @@ class PostService {
       final path = '${user.id}/${_uuid()}_${_safeName(file.name)}';
       await _sb.storage.from(_bucket).uploadBinary(
             path,
-            bytes as Uint8List,
+            bytes,
             fileOptions: FileOptions(
               contentType: _contentType(ext),
               upsert: false,

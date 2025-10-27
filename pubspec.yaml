@@ -9,6 +9,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+  font_awesome_flutter: ^10.7.0
+
     
 
   flutter_localizations:
@@ -42,6 +45,8 @@ dependencies:
   # Gráficas de evolución
   fl_chart: ^0.68.0
 
+  mime: any
+  path: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

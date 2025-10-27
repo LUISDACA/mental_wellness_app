@@ -212,12 +212,15 @@ Texto: "$text"
         return 'Siento mucho que te sientas así. No estás solo/a. Si corres riesgo inmediato, busca ayuda urgente (112/911 o línea local). '
             '¿Puedo acompañarte mientras contactas a alguien de confianza?';
       }
-      if (m.contains('triste'))
+      if (m.contains('triste')) {
         return 'Lamento que te sientas triste. Probemos 4 respiraciones lentas. ¿Qué te aliviaría un poquito ahora?';
-      if (m.contains('ansie'))
+      }
+      if (m.contains('ansie')) {
         return 'La ansiedad es difícil. Intentemos 4–7–8 un minuto. ¿Qué pequeño paso puedes dar hoy?';
-      if (m.contains('enojo') || m.contains('rabia'))
+      }
+      if (m.contains('enojo') || m.contains('rabia')) {
         return 'Es válido sentir enojo. Da 10 respiraciones y camina 5 min antes de actuar.';
+      }
       return 'Estoy contigo. Respiremos 4–4–4. Cuéntame un poco más para ayudarte mejor.';
     }
 

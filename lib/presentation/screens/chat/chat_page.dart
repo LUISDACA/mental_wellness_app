@@ -194,7 +194,7 @@ class _CP extends ConsumerState<ChatPage> {
                                       .primaryContainer
                                   : Theme.of(context)
                                       .colorScheme
-                                      .surfaceVariant,
+                                      .surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -282,7 +282,7 @@ class _TypingBubbleState extends State<_TypingBubble> {
           margin: const EdgeInsets.symmetric(vertical: 6),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceVariant,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(text, style: Theme.of(context).textTheme.bodyMedium),

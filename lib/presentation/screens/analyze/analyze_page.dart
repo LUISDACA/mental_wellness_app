@@ -313,7 +313,7 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
                                             ),
                                             Chip(
                                               label: Text(
-                                                  'Sev ${sev}/100 • ${(score * 100).toStringAsFixed(0)}%'),
+                                                  'Sev $sev/100 • ${(score * 100).toStringAsFixed(0)}%'),
                                               visualDensity:
                                                   VisualDensity.compact,
                                             ),

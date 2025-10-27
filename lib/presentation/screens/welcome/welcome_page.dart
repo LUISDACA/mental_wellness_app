@@ -117,21 +117,21 @@ class _HeroPanel extends StatelessWidget {
                 child: Icon(Icons.self_improvement,
                     size: 140, color: cs.primary.withOpacity(.85)),
               ),
-              Align(
-                alignment: const Alignment(-.85, -.75),
+              const Align(
+                alignment: Alignment(-.85, -.75),
                 child: _Chip(text: 'Análisis emocional', icon: Icons.favorite),
               ),
-              Align(
-                alignment: const Alignment(.85, -.55),
+              const Align(
+                alignment: Alignment(.85, -.55),
                 child: _Chip(
                     text: 'Consejos útiles', icon: Icons.tips_and_updates),
               ),
-              Align(
-                alignment: const Alignment(-.75, .6),
+              const Align(
+                alignment: Alignment(-.75, .6),
                 child: _Chip(text: 'Mapa de ayuda', icon: Icons.map_outlined),
               ),
-              Align(
-                alignment: const Alignment(.75, .8),
+              const Align(
+                alignment: Alignment(.75, .8),
                 child:
                     _Chip(text: 'Historial & gráficas', icon: Icons.show_chart),
               ),
@@ -167,10 +167,10 @@ class _CopyAndCtas extends StatelessWidget {
           style: text.titleMedium,
         ),
         const SizedBox(height: 18),
-        Wrap(
+        const Wrap(
           spacing: 10,
           runSpacing: 10,
-          children: const [
+          children: [
             _Feature(
                 icon: Icons.chat_bubble_outline, label: 'Chat empático con IA'),
             _Feature(

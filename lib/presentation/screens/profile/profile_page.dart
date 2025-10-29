@@ -19,9 +19,13 @@ class _ProfilePageState extends State<ProfilePage> {
   Profile? _profile;
   bool _loading = false;
 
-  final _nameCtrl = TextEditingController();
+  final _firstCtrl = TextEditingController();
+  final _lastCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _addrCtrl = TextEditingController();
+
+  String _gender = 'female';
+  DateTime? _birthDate;
 
   @override
   void initState() {
@@ -29,14 +33,26 @@ class _ProfilePageState extends State<ProfilePage> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _firstCtrl.dispose();
+    _lastCtrl.dispose();
+    _phoneCtrl.dispose();
+    _addrCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
       final p = await _svc.getOrCreateMyProfile();
       _profile = p;
-      _nameCtrl.text = p.fullName ?? '';
+      _firstCtrl.text = p.firstName ?? '';
+      _lastCtrl.text = p.lastName ?? '';
       _phoneCtrl.text = p.phone ?? '';
       _addrCtrl.text = p.address ?? '';
+      _gender = p.gender ?? _gender;
+      _birthDate = p.birthDate;
       setState(() {});
     } catch (e) {
       if (!mounted) return;
@@ -50,7 +66,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _pickAvatar() async {
     final res = await FilePicker.platform.pickFiles(
       type: FileType.image,
-      withData: true, // importante para web
+      withData: true,
     );
     if (res == null) return;
     final file = res.files.single;
@@ -68,7 +84,18 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final path =
           await _svc.uploadAvatarBytes(bytes: bytes, originalName: name);
-      final updated = await _svc.upsert(avatarPath: path);
+      final full = _buildFullName(_firstCtrl.text, _lastCtrl.text);
+      final updated = await _svc.upsert(
+        avatarPath: path,
+        firstName:
+            _firstCtrl.text.trim().isEmpty ? null : _firstCtrl.text.trim(),
+        lastName: _lastCtrl.text.trim().isEmpty ? null : _lastCtrl.text.trim(),
+        fullName: full.isEmpty ? null : full,
+        gender: _gender,
+        birthDate: _birthDate,
+        phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+        address: _addrCtrl.text.trim().isEmpty ? null : _addrCtrl.text.trim(),
+      );
       setState(() => _profile = updated);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -85,8 +112,14 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _save() async {
     setState(() => _loading = true);
     try {
+      final full = _buildFullName(_firstCtrl.text, _lastCtrl.text);
       final updated = await _svc.upsert(
-        fullName: _nameCtrl.text.trim().isEmpty ? null : _nameCtrl.text.trim(),
+        firstName:
+            _firstCtrl.text.trim().isEmpty ? null : _firstCtrl.text.trim(),
+        lastName: _lastCtrl.text.trim().isEmpty ? null : _lastCtrl.text.trim(),
+        fullName: full.isEmpty ? null : full,
+        gender: _gender,
+        birthDate: _birthDate,
         phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
         address: _addrCtrl.text.trim().isEmpty ? null : _addrCtrl.text.trim(),
       );
@@ -100,6 +133,22 @@ class _ProfilePageState extends State<ProfilePage> {
           .showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  String _buildFullName(String a, String b) => '${a.trim()} ${b.trim()}'.trim();
+
+  Future<void> _pickBirthDate() async {
+    final now = DateTime.now();
+    final initial = _birthDate ?? DateTime(now.year - 20, 1, 1);
+    final picked = await showDatePicker(
+      context: context,
+      firstDate: DateTime(1900, 1, 1),
+      lastDate: now,
+      initialDate: initial,
+    );
+    if (picked != null) {
+      setState(() => _birthDate = picked);
     }
   }
 
@@ -161,15 +210,67 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ],
               const SizedBox(height: 16),
-              TextField(
-                controller: _nameCtrl,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre completo',
-                  prefixIcon: Icon(Icons.badge_outlined),
-                ),
+
+              // Nombre / Apellido
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _firstCtrl,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: const InputDecoration(
+                        labelText: 'Nombre',
+                        prefixIcon: Icon(Icons.badge_outlined),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _lastCtrl,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: const InputDecoration(
+                        labelText: 'Apellido',
+                        prefixIcon: Icon(Icons.badge_outlined),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
+
+              // Fecha de nacimiento + Género
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _pickBirthDate,
+                      icon: const Icon(Icons.cake_outlined),
+                      label: Text(
+                        _birthDate == null
+                            ? 'Fecha de nacimiento'
+                            : DateFormat.yMMMd(locale).format(_birthDate!),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'female', label: Text('Mujer')),
+                        ButtonSegment(value: 'male', label: Text('Hombre')),
+                        ButtonSegment(value: 'custom', label: Text('Otro')),
+                      ],
+                      selected: {_gender},
+                      onSelectionChanged: (s) =>
+                          setState(() => _gender = s.first),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Teléfono / Dirección
               TextField(
                 controller: _phoneCtrl,
                 keyboardType: TextInputType.phone,

@@ -1,6 +1,11 @@
 class Profile {
-  final String id; // auth.users.id
+  final String id;
+  final String? email;
+  final String? firstName;
+  final String? lastName;
   final String? fullName;
+  final String? gender; // 'female' | 'male' | 'custom'
+  final DateTime? birthDate; // DATE en DB
   final String? phone;
   final String? address;
   final String? avatarPath;
@@ -9,30 +14,44 @@ class Profile {
 
   Profile({
     required this.id,
+    required this.createdAt,
+    required this.updatedAt,
+    this.email,
+    this.firstName,
+    this.lastName,
     this.fullName,
+    this.gender,
+    this.birthDate,
     this.phone,
     this.address,
     this.avatarPath,
-    required this.createdAt,
-    required this.updatedAt,
   });
 
-  factory Profile.fromMap(Map<String, dynamic> m) => Profile(
-        id: m['id'] as String,
-        fullName: m['full_name'] as String?,
-        phone: m['phone'] as String?,
-        address: m['address'] as String?,
-        avatarPath: m['avatar_path'] as String?,
-        createdAt: DateTime.parse(m['created_at'].toString()),
-        updatedAt: DateTime.parse(m['updated_at'].toString()),
-      );
+  factory Profile.fromMap(Map<String, dynamic> m) {
+    DateTime? _parseDate(dynamic v) {
+      if (v == null) return null;
+      final s = v.toString();
+      // Puede venir 'YYYY-MM-DD' o ISO
+      try {
+        return DateTime.parse(s);
+      } catch (_) {
+        return null;
+      }
+    }
 
-  Map<String, dynamic> toUpsertMap() => {
-        'id': id,
-        if (fullName != null) 'full_name': fullName,
-        if (phone != null) 'phone': phone,
-        if (address != null) 'address': address,
-        if (avatarPath != null) 'avatar_path': avatarPath,
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      };
+    return Profile(
+      id: m['id'] as String,
+      email: m['email'] as String?,
+      firstName: m['first_name'] as String?,
+      lastName: m['last_name'] as String?,
+      fullName: m['full_name'] as String?,
+      gender: m['gender'] as String?,
+      birthDate: _parseDate(m['birth_date']),
+      phone: m['phone'] as String?,
+      address: m['address'] as String?,
+      avatarPath: m['avatar_path'] as String?,
+      createdAt: DateTime.parse(m['created_at'] as String),
+      updatedAt: DateTime.parse(m['updated_at'] as String),
+    );
+  }
 }

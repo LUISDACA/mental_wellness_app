@@ -1,3 +1,4 @@
+// lib/data/services/post_service.dart
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -6,7 +7,9 @@ import '../../domain/models/post.dart';
 class PostService {
   final SupabaseClient _sb = Supabase.instance.client;
   static const String _bucket = 'post_media';
+  static const String _avatarsBucket = 'avatars'; // <- bucket de avatares
 
+  // ---------- STREAM ----------
   Stream<List<Post>> streamPosts() {
     return _sb
         .from('posts')
@@ -15,9 +18,10 @@ class PostService {
         .map((rows) => rows.map((r) => Post.fromMap(r)).toList());
   }
 
+  // ---------- CREATE ----------
   Future<void> createPost({
     required String text,
-    PlatformFile? file, // opcional
+    PlatformFile? file, // opcional (imagen/pdf)
   }) async {
     final user = _sb.auth.currentUser;
     if (user == null) throw StateError('No hay sesión');
@@ -26,9 +30,23 @@ class PostService {
       throw ArgumentError('El texto es obligatorio');
     }
 
+    // Lee perfil para nombre y avatar
+    final prof = await _sb
+        .from('profiles')
+        .select('full_name, avatar_path')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    final authorName = (prof?['full_name'] as String?) ??
+        (user.userMetadata?['name'] as String?) ??
+        (user.email?.split('@').first ?? 'Usuario');
+
+    final authorAvatarPath = prof?['avatar_path'] as String?;
+
     String? mediaPath;
     String? mediaType;
 
+    // Subida de archivo (si hay)
     if (file != null) {
       final bytes = file.bytes;
       if (bytes == null) {
@@ -51,18 +69,17 @@ class PostService {
       mediaPath = path;
     }
 
-    final authorName = (user.userMetadata?['name'] as String?) ??
-        (user.email?.split('@').first ?? 'Usuario');
-
     await _sb.from('posts').insert({
       'user_id': user.id,
       'author_name': authorName,
+      'author_avatar_path': authorAvatarPath, // <- GUARDA EL AVATAR
       'content': text.trim(),
       'media_path': mediaPath,
       'media_type': mediaType,
     });
   }
 
+  // ---------- UPDATE ----------
   Future<void> updatePost({
     required String postId,
     required String newText,
@@ -75,23 +92,31 @@ class PostService {
         .update({'content': newText.trim()}).eq('id', postId);
   }
 
+  // ---------- DELETE ----------
   Future<void> deletePost(Post p) async {
     await _sb.from('posts').delete().eq('id', p.id);
     if (p.mediaPath != null) {
       try {
         await _sb.storage.from(_bucket).remove([p.mediaPath!]);
       } catch (_) {
-        // ignorar si ya no existe o no hay permiso
+        // ignorar
       }
     }
   }
 
+  // ---------- URLS ----------
   String? publicUrlFor(Post p) {
     if (p.mediaPath == null) return null;
     return _sb.storage.from(_bucket).getPublicUrl(p.mediaPath!);
   }
 
-  // ------------- helpers -------------
+  String? authorAvatarUrlFor(Post p) {
+    final path = p.authorAvatarPath;
+    if (path == null || path.isEmpty) return null;
+    return _sb.storage.from(_avatarsBucket).getPublicUrl(path);
+  }
+
+  // ---------- helpers ----------
   String _ext(String name) {
     final i = name.lastIndexOf('.');
     return (i >= 0) ? name.substring(i + 1).toLowerCase() : '';
@@ -99,6 +124,7 @@ class PostService {
 
   bool _isImage(String ext) =>
       ['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(ext);
+
   bool _isPdf(String ext) => ext == 'pdf';
 
   String _contentType(String ext) {

@@ -1,3 +1,4 @@
+// lib/presentation/screens/posts/posts_page.dart
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -165,6 +166,7 @@ class _PostCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final svc = ref.read(postServiceProvider);
     final mediaUrl = svc.publicUrlFor(post);
+    final avatarUrl = svc.authorAvatarUrlFor(post); // <- URL avatar autor
     final locale = Localizations.localeOf(context).toString();
     final localDate = post.createdAt.toLocal();
     final dateStr = DateFormat.yMMMd(locale).add_Hm().format(localDate);
@@ -180,11 +182,10 @@ class _PostCard extends ConsumerWidget {
             Row(
               children: [
                 CircleAvatar(
-                  child: Text(
-                    post.authorName.isNotEmpty
-                        ? post.authorName[0].toUpperCase()
-                        : 'U',
-                  ),
+                  radius: 20,
+                  backgroundImage:
+                      (avatarUrl != null) ? NetworkImage(avatarUrl) : null,
+                  child: (avatarUrl == null) ? Text(post.authorInitial) : null,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -229,7 +230,7 @@ class _PostCard extends ConsumerWidget {
             Text(post.content),
 
             // media
-            if (post.hasImage && mediaUrl != null) ...[
+            if (post.isImage && mediaUrl != null) ...[
               const SizedBox(height: 10),
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
@@ -241,7 +242,7 @@ class _PostCard extends ConsumerWidget {
                 ),
               ),
             ],
-            if (post.hasPdf && mediaUrl != null) ...[
+            if (post.isPdf && mediaUrl != null) ...[
               const SizedBox(height: 6),
               TextButton.icon(
                 onPressed: () =>

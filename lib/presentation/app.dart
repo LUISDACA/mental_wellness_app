@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import '../core/theme.dart';
 import 'routes.dart';
 
 class App extends StatelessWidget {
@@ -20,11 +21,7 @@ class App extends StatelessWidget {
         Locale('es'), // español
         Locale('en'), // inglés (por si el SO está en inglés)
       ],
-      theme: ThemeData(
-        colorSchemeSeed: Colors.indigo,
-        useMaterial3: true,
-        brightness: Brightness.light,
-      ),
+      theme: AppTheme.light,
     );
   }
 }

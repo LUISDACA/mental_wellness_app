@@ -195,7 +195,7 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
             title: const Text('Severidad alta'),
             content: Text(
                 'Detectamos ${res.emotion} con severidad ${res.severity}/100.\n'
-                'Si estás en riesgo, busca ayuda inmediata (112/911 o contacto SOS).'),
+                'Si estás en riesgo, busca ayuda inmediata (123/911 o contacto SOS).'),
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(context),

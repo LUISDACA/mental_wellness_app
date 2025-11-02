@@ -122,7 +122,7 @@ class _HistoryPageState extends State<HistoryPage> {
     final low = (last?.severity ?? 0) <= 30;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Emotional History')),
+      appBar: AppBar(title: const Text('Historial emocional')),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(

@@ -1,3 +1,5 @@
+import '../../core/constants.dart';
+
 class EmotionEntry {
   final String id;
   final String detectedEmotion;
@@ -8,12 +10,45 @@ class EmotionEntry {
 
   EmotionEntry({
     required this.id,
-    required this.detectedEmotion,
-    required this.score,
-    required this.severity,
+    required String detectedEmotion,
+    required double score,
+    required int severity,
     this.advice,
     required this.createdAt,
-  });
+  })  : detectedEmotion = _validateEmotion(detectedEmotion),
+        score = _validateScore(score),
+        severity = _validateSeverity(severity);
+
+  /// Validates that the emotion is one of the recognized types
+  static String _validateEmotion(String emotion) {
+    if (!AppConstants.validEmotions.contains(emotion)) {
+      throw ArgumentError(
+        'Invalid emotion: "$emotion". Must be one of: ${AppConstants.validEmotions.join(", ")}',
+      );
+    }
+    return emotion;
+  }
+
+  /// Validates that the score is between 0.0 and 1.0
+  static double _validateScore(double score) {
+    if (score < AppConstants.scoreMin || score > AppConstants.scoreMax) {
+      throw RangeError(
+        'Score must be between ${AppConstants.scoreMin} and ${AppConstants.scoreMax}, got: $score',
+      );
+    }
+    return score;
+  }
+
+  /// Validates that the severity is between 0 and 100
+  static int _validateSeverity(int severity) {
+    if (severity < AppConstants.severityMin ||
+        severity > AppConstants.severityMax) {
+      throw RangeError(
+        'Severity must be between ${AppConstants.severityMin} and ${AppConstants.severityMax}, got: $severity',
+      );
+    }
+    return severity;
+  }
 
   factory EmotionEntry.fromJson(Map<String, dynamic> json) => EmotionEntry(
         id: json['id'] as String,

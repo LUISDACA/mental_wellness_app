@@ -7,7 +7,6 @@ class WelcomePage extends StatelessWidget {
 
   void _goSignIn(BuildContext context) {
     final user = Supabase.instance.client.auth.currentUser;
-    // Si ya está autenticado, llévalo directo al Home
     if (user != null) {
       context.go('/home');
     } else {
@@ -20,7 +19,6 @@ class WelcomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
 
     return Scaffold(
       body: Stack(
@@ -100,7 +98,8 @@ class _HeroPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
+    final size = MediaQuery.of(context).size;
+    final isSmall = size.width < 400;
 
     return Card(
       elevation: 0,
@@ -109,33 +108,72 @@ class _HeroPanel extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: AspectRatio(
-          aspectRatio: 16 / 10,
-          child: Stack(
-            children: [
-              Align(
-                alignment: Alignment.center,
-                child: Icon(Icons.self_improvement,
-                    size: 140, color: cs.primary.withOpacity(.85)),
-              ),
-              const Align(
-                alignment: Alignment(-.85, -.75),
-                child: _Chip(text: 'Análisis emocional', icon: Icons.favorite),
-              ),
-              const Align(
-                alignment: Alignment(.85, -.55),
-                child: _Chip(
-                    text: 'Consejos útiles', icon: Icons.tips_and_updates),
-              ),
-              const Align(
-                alignment: Alignment(-.75, .6),
-                child: _Chip(text: 'Mapa de ayuda', icon: Icons.map_outlined),
-              ),
-              const Align(
-                alignment: Alignment(.75, .8),
-                child:
-                    _Chip(text: 'Historial & gráficas', icon: Icons.show_chart),
-              ),
-            ],
+          aspectRatio: isSmall ? 1.0 : 16 / 10,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final iconSize = constraints.maxWidth * 0.35;
+              final chipScale = constraints.maxWidth < 300 ? 0.85 : 1.0;
+
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // Ícono central
+                  Align(
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.self_improvement,
+                      size: iconSize,
+                      color: cs.primary.withOpacity(.85),
+                    ),
+                  ),
+                  // Chips posicionados - MEJORADO para evitar superposición
+                  Positioned(
+                    left: 0,
+                    top: constraints.maxHeight * 0.1,
+                    child: Transform.scale(
+                      scale: chipScale,
+                      child: const _Chip(
+                        text: 'Análisis emocional',
+                        icon: Icons.favorite,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    top: constraints.maxHeight * 0.2,
+                    child: Transform.scale(
+                      scale: chipScale,
+                      child: const _Chip(
+                        text: 'Consejos útiles',
+                        icon: Icons.tips_and_updates,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 0,
+                    bottom: constraints.maxHeight * 0.15,
+                    child: Transform.scale(
+                      scale: chipScale,
+                      child: const _Chip(
+                        text: 'Mapa de ayuda',
+                        icon: Icons.map_outlined,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: constraints.maxHeight * 0.05,
+                    child: Transform.scale(
+                      scale: chipScale,
+                      child: const _Chip(
+                        text: 'Historial & gráficas',
+                        icon: Icons.show_chart,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -152,14 +190,19 @@ class _CopyAndCtas extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final cs = Theme.of(context).colorScheme;
+    final size = MediaQuery.of(context).size;
+    final isSmall = size.width < 400;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Bienestar Emocional',
-            style: text.displaySmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            )),
+        Text(
+          'Bienestar Emocional',
+          style: text.displaySmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: isSmall ? 28 : null,
+          ),
+        ),
         const SizedBox(height: 8),
         Text(
           'Una app para acompañarte día a día: analiza cómo te sientes, '
@@ -181,14 +224,15 @@ class _CopyAndCtas extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 22),
-        Row(
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
           children: [
             FilledButton.icon(
               onPressed: onSignIn,
               icon: const Icon(Icons.login),
               label: const Text('Iniciar sesión'),
             ),
-            const SizedBox(width: 12),
             OutlinedButton.icon(
               onPressed: onSignUp,
               icon: const Icon(Icons.app_registration),
@@ -220,11 +264,23 @@ class _Chip extends StatelessWidget {
         borderRadius: BorderRadius.circular(100),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 18, color: cs.onPrimaryContainer),
-        const SizedBox(width: 6),
-        Text(text, style: TextStyle(color: cs.onPrimaryContainer)),
-      ]),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: cs.onPrimaryContainer),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: cs.onPrimaryContainer,
+                fontSize: 13,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

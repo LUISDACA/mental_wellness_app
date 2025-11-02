@@ -139,7 +139,7 @@ class _CP extends ConsumerState<ChatPage> {
 
     if (user == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Companion Chat')),
+        appBar: AppBar(title: const Text('Chat de compañía')),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -157,7 +157,7 @@ class _CP extends ConsumerState<ChatPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Companion Chat')),
+      appBar: AppBar(title: const Text('Chat de compañía')),
       body: Column(
         children: [
           Expanded(

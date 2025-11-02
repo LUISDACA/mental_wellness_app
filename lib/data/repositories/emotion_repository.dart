@@ -1,4 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/constants.dart';
+import '../../core/logger.dart';
 
 class EmotionRepository {
   final _db = Supabase.instance.client;
@@ -12,26 +14,58 @@ class EmotionRepository {
     required String advice,
     required String model,
   }) async {
-    await _db.from('emotion_entries').insert({
-      'user_id': userId,
-      'text_input': text, // 👈 nombre real
-      'detected_emotion': emotion, // 👈 nombre real
-      'score': score,
-      'severity': severity,
-      'advice': advice,
-      'model': model,
-    });
+    try {
+      await _db.from('emotion_entries').insert({
+        'user_id': userId,
+        'text_input': text,
+        'detected_emotion': emotion,
+        'score': score,
+        'severity': severity,
+        'advice': advice,
+        'model': model,
+      });
+      AppLogger.debug('Emotion entry saved for user: $userId', tag: 'EmotionRepo');
+    } catch (e, stack) {
+      AppLogger.error(
+        'Failed to save emotion entry',
+        error: e,
+        stack: stack,
+        tag: 'EmotionRepo',
+      );
+      rethrow;
+    }
   }
 
   Future<List<Map<String, dynamic>>> listForUser(String userId) async {
-    final rows = await _db
-        .from('emotion_entries')
-        .select(
-            'id, created_at, text_input, detected_emotion, score, severity, advice')
-        .eq('user_id', userId)
-        .order('created_at', ascending: false)
-        .limit(50) as List<dynamic>;
+    try {
+      final response = await _db
+          .from('emotion_entries')
+          .select(
+              'id, created_at, text_input, detected_emotion, score, severity, advice')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .limit(AppConstants.maxEmotionEntriesLimit) as List;
 
-    return rows.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      // Filter and convert to Maps, skipping invalid entries
+      final entries = response
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+
+      AppLogger.debug(
+        'Retrieved ${entries.length} emotion entries for user: $userId',
+        tag: 'EmotionRepo',
+      );
+
+      return entries;
+    } catch (e, stack) {
+      AppLogger.error(
+        'Failed to list emotion entries',
+        error: e,
+        stack: stack,
+        tag: 'EmotionRepo',
+      );
+      rethrow;
+    }
   }
 }

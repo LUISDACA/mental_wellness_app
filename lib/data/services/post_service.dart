@@ -1,13 +1,14 @@
 // lib/data/services/post_service.dart
-import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import '../../domain/models/post.dart';
+import '../../core/constants.dart';
+import '../../core/logger.dart';
 
 class PostService {
   final SupabaseClient _sb = Supabase.instance.client;
-  static const String _bucket = 'post_media';
-  static const String _avatarsBucket = 'avatars'; // <- bucket de avatares
+  final _uuid = const Uuid();
 
   // ---------- STREAM ----------
   Stream<List<Post>> streamPosts() {
@@ -23,60 +24,91 @@ class PostService {
     required String text,
     PlatformFile? file, // opcional (imagen/pdf)
   }) async {
-    final user = _sb.auth.currentUser;
-    if (user == null) throw StateError('No hay sesión');
-
-    if (text.trim().isEmpty) {
-      throw ArgumentError('El texto es obligatorio');
-    }
-
-    // Lee perfil para nombre y avatar
-    final prof = await _sb
-        .from('profiles')
-        .select('full_name, avatar_path')
-        .eq('id', user.id)
-        .maybeSingle();
-
-    final authorName = (prof?['full_name'] as String?) ??
-        (user.userMetadata?['name'] as String?) ??
-        (user.email?.split('@').first ?? 'Usuario');
-
-    final authorAvatarPath = prof?['avatar_path'] as String?;
-
-    String? mediaPath;
-    String? mediaType;
-
-    // Subida de archivo (si hay)
-    if (file != null) {
-      final bytes = file.bytes;
-      if (bytes == null) {
-        throw StateError('No se pudo leer el archivo');
+    try {
+      final user = _sb.auth.currentUser;
+      if (user == null) {
+        throw const AuthException(AppConstants.errorNoSession);
       }
-      final ext = _ext(file.name);
-      mediaType = _isImage(ext) ? 'image' : (_isPdf(ext) ? 'pdf' : null);
-      if (mediaType == null) {
-        throw ArgumentError('Solo se admiten imágenes o PDF');
-      }
-      final path = '${user.id}/${_uuid()}_${_safeName(file.name)}';
-      await _sb.storage.from(_bucket).uploadBinary(
-            path,
-            bytes as Uint8List,
-            fileOptions: FileOptions(
-              contentType: _contentType(ext),
-              upsert: false,
-            ),
-          );
-      mediaPath = path;
-    }
 
-    await _sb.from('posts').insert({
-      'user_id': user.id,
-      'author_name': authorName,
-      'author_avatar_path': authorAvatarPath, // <- GUARDA EL AVATAR
-      'content': text.trim(),
-      'media_path': mediaPath,
-      'media_type': mediaType,
-    });
+      if (text.trim().isEmpty) {
+        throw ArgumentError(AppConstants.errorEmptyText);
+      }
+
+      // Lee perfil para nombre y avatar
+      final prof = await _sb
+          .from('profiles')
+          .select('full_name, avatar_path')
+          .eq('id', user.id)
+          .maybeSingle();
+
+      final authorName = (prof?['full_name'] as String?) ??
+          (user.userMetadata?['name'] as String?) ??
+          (user.email?.split('@').first ?? 'Usuario');
+
+      final authorAvatarPath = prof?['avatar_path'] as String?;
+
+      String? mediaPath;
+      String? mediaType;
+
+      // Subida de archivo (si hay)
+      if (file != null) {
+        final bytes = file.bytes;
+        if (bytes == null) {
+          throw StateError(AppConstants.errorFileReadFailed);
+        }
+
+        // Validar tamaño de archivo
+        if (bytes.length > AppConstants.maxFileSizeBytes) {
+          final sizeMB = bytes.length / 1024 / 1024;
+          throw ArgumentError(AppConstants.errorFileTooLarge(sizeMB));
+        }
+
+        final ext = _ext(file.name);
+        if (_isImage(ext)) {
+          mediaType = AppConstants.mediaTypeImage;
+        } else if (_isPdf(ext)) {
+          mediaType = AppConstants.mediaTypePdf;
+        } else {
+          throw ArgumentError(AppConstants.errorInvalidFileType);
+        }
+
+        final path = '${user.id}/${_uuid.v4()}_${_safeName(file.name)}';
+
+        AppLogger.debug(
+          'Uploading file: ${file.name} (${(bytes.length / 1024).toStringAsFixed(2)} KB)',
+          tag: 'PostService',
+        );
+
+        await _sb.storage.from(AppConstants.postMediaBucket).uploadBinary(
+              path,
+              bytes,
+              fileOptions: FileOptions(
+                contentType: _contentType(ext),
+                upsert: false,
+              ),
+            );
+        mediaPath = path;
+      }
+
+      await _sb.from('posts').insert({
+        'user_id': user.id,
+        'author_name': authorName,
+        'author_avatar_path': authorAvatarPath,
+        'content': text.trim(),
+        'media_path': mediaPath,
+        'media_type': mediaType,
+      });
+
+      AppLogger.info('Post created successfully', tag: 'PostService');
+    } catch (e, stack) {
+      AppLogger.error(
+        'Failed to create post',
+        error: e,
+        stack: stack,
+        tag: 'PostService',
+      );
+      rethrow;
+    }
   }
 
   // ---------- UPDATE ----------
@@ -94,26 +126,44 @@ class PostService {
 
   // ---------- DELETE ----------
   Future<void> deletePost(Post p) async {
-    await _sb.from('posts').delete().eq('id', p.id);
-    if (p.mediaPath != null) {
-      try {
-        await _sb.storage.from(_bucket).remove([p.mediaPath!]);
-      } catch (_) {
-        // ignorar
+    try {
+      await _sb.from('posts').delete().eq('id', p.id);
+
+      // Intenta eliminar el archivo multimedia si existe
+      if (p.mediaPath != null) {
+        try {
+          await _sb.storage.from(AppConstants.postMediaBucket).remove([p.mediaPath!]);
+          AppLogger.debug('Media file deleted: ${p.mediaPath}', tag: 'PostService');
+        } catch (e) {
+          AppLogger.warning(
+            'Failed to delete media file, but post was deleted: $e',
+            tag: 'PostService',
+          );
+        }
       }
+
+      AppLogger.info('Post deleted: ${p.id}', tag: 'PostService');
+    } catch (e, stack) {
+      AppLogger.error(
+        'Failed to delete post',
+        error: e,
+        stack: stack,
+        tag: 'PostService',
+      );
+      rethrow;
     }
   }
 
   // ---------- URLS ----------
   String? publicUrlFor(Post p) {
     if (p.mediaPath == null) return null;
-    return _sb.storage.from(_bucket).getPublicUrl(p.mediaPath!);
+    return _sb.storage.from(AppConstants.postMediaBucket).getPublicUrl(p.mediaPath!);
   }
 
   String? authorAvatarUrlFor(Post p) {
     final path = p.authorAvatarPath;
     if (path == null || path.isEmpty) return null;
-    return _sb.storage.from(_avatarsBucket).getPublicUrl(path);
+    return _sb.storage.from(AppConstants.avatarsBucket).getPublicUrl(path);
   }
 
   // ---------- helpers ----------
@@ -122,34 +172,28 @@ class PostService {
     return (i >= 0) ? name.substring(i + 1).toLowerCase() : '';
   }
 
-  bool _isImage(String ext) =>
-      ['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(ext);
+  bool _isImage(String ext) => AppConstants.allowedImageExtensions.contains(ext);
 
-  bool _isPdf(String ext) => ext == 'pdf';
+  bool _isPdf(String ext) => AppConstants.allowedDocumentExtensions.contains(ext);
 
   String _contentType(String ext) {
     if (_isImage(ext)) {
       switch (ext) {
         case 'jpg':
         case 'jpeg':
-          return 'image/jpeg';
+          return AppConstants.contentTypeJpeg;
         case 'png':
-          return 'image/png';
+          return AppConstants.contentTypePng;
         case 'gif':
-          return 'image/gif';
+          return AppConstants.contentTypeGif;
         case 'webp':
-          return 'image/webp';
+          return AppConstants.contentTypeWebp;
       }
     }
-    if (_isPdf(ext)) return 'application/pdf';
-    return 'application/octet-stream';
+    if (_isPdf(ext)) return AppConstants.contentTypePdf;
+    return AppConstants.contentTypeOctetStream;
   }
 
   String _safeName(String name) =>
       name.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
-
-  String _uuid() {
-    final now = DateTime.now().microsecondsSinceEpoch.toRadixString(16);
-    return now;
-  }
 }

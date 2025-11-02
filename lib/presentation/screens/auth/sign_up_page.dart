@@ -138,7 +138,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      appBar: AppBar(title: const Text('Sign Up')),
+      appBar: AppBar(title: const Text('Crear cuenta')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 720),

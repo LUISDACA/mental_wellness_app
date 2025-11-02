@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import '../core/theme.dart';
+import '../core/theme.dart'; // ← IMPORTAR EL TEMA
 import 'routes.dart';
 
 class App extends StatelessWidget {
@@ -21,7 +21,9 @@ class App extends StatelessWidget {
         Locale('es'), // español
         Locale('en'), // inglés (por si el SO está en inglés)
       ],
-      theme: AppTheme.light,
+
+      // ⭐ AQUÍ ESTÁ EL CAMBIO IMPORTANTE ⭐
+      theme: AppTheme.light, // Tema claro personalizado
     );
   }
 }

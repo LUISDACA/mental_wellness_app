@@ -99,14 +99,33 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() => _profile = updated);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Foto de perfil actualizada')));
+          const SnackBar(content: Text('Foto actualizada con éxito')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo subir la imagen: $e')),
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  String _buildFullName(String f, String l) {
+    final ff = f.trim();
+    final ll = l.trim();
+    return [if (ff.isNotEmpty) ff, if (ll.isNotEmpty) ll].join(' ');
+  }
+
+  Future<void> _pickBirthDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _birthDate ?? DateTime(2000),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      locale: const Locale('es'),
+    );
+    if (picked == null) return;
+    setState(() => _birthDate = picked);
   }
 
   Future<void> _save() async {
@@ -125,182 +144,227 @@ class _ProfilePageState extends State<ProfilePage> {
       );
       setState(() => _profile = updated);
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Perfil guardado')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Perfil actualizado con éxito')),
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  String _buildFullName(String a, String b) => '${a.trim()} ${b.trim()}'.trim();
-
-  Future<void> _pickBirthDate() async {
-    final now = DateTime.now();
-    final initial = _birthDate ?? DateTime(now.year - 20, 1, 1);
-    final picked = await showDatePicker(
-      context: context,
-      firstDate: DateTime(1900, 1, 1),
-      lastDate: now,
-      initialDate: initial,
-    );
-    if (picked != null) {
-      setState(() => _birthDate = picked);
-    }
+  String? _publicAvatarUrl(String? path) {
+    if (path == null || path.isEmpty) return null;
+    return Supabase.instance.client.storage.from('avatars').getPublicUrl(path);
   }
 
   @override
   Widget build(BuildContext context) {
-    final u = Supabase.instance.client.auth.currentUser;
-    final avatarUrl = _svc.publicAvatarUrl(_profile?.avatarPath);
     final locale = Localizations.localeOf(context).toString();
+    final avatarUrl = _publicAvatarUrl(_profile?.avatarPath);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Editar perfil')),
       body: Stack(
         children: [
-          ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-            children: [
-              Center(
-                child: Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 52,
-                      backgroundImage:
-                          (avatarUrl != null) ? NetworkImage(avatarUrl) : null,
-                      child: (avatarUrl == null)
-                          ? const Icon(Icons.person, size: 52)
-                          : null,
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Material(
-                        color: Theme.of(context).colorScheme.primary,
-                        shape: const CircleBorder(),
-                        child: IconButton(
-                          onPressed: _pickAvatar,
-                          icon:
-                              const Icon(Icons.camera_alt, color: Colors.white),
-                          tooltip: 'Cambiar foto',
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+            child: Column(
+              children: [
+                GestureDetector(
+                  onTap: _pickAvatar,
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 60,
+                        backgroundImage: (avatarUrl != null)
+                            ? NetworkImage(avatarUrl)
+                            : null,
+                        child: (avatarUrl == null)
+                            ? Icon(Icons.person,
+                                size: 60,
+                                color: Theme.of(context).colorScheme.primary)
+                            : null,
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: CircleAvatar(
+                          radius: 18,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          child: const Icon(Icons.camera_alt,
+                              size: 18, color: Colors.white),
                         ),
                       ),
-                    )
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Center(
-                child: Text(
-                  u?.email ?? '',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-              if (_profile != null) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Center(
                   child: Text(
-                    'Actualizado: ${DateFormat.yMMMd(locale).add_Hm().format(_profile!.updatedAt.toLocal())}',
+                    _profile?.email ?? '',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
-              ],
-              const SizedBox(height: 16),
-
-              // Nombre / Apellido
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _firstCtrl,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        labelText: 'Nombre',
-                        prefixIcon: Icon(Icons.badge_outlined),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _lastCtrl,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        labelText: 'Apellido',
-                        prefixIcon: Icon(Icons.badge_outlined),
-                      ),
+                if (_profile != null) ...[
+                  const SizedBox(height: 4),
+                  Center(
+                    child: Text(
+                      'Actualizado: ${DateFormat.yMMMd(locale).add_Hm().format(_profile!.updatedAt.toLocal())}',
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
-              // Fecha de nacimiento + Género
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _pickBirthDate,
-                      icon: const Icon(Icons.cake_outlined),
-                      label: Text(
-                        _birthDate == null
-                            ? 'Fecha de nacimiento'
-                            : DateFormat.yMMMd(locale).format(_birthDate!),
+                // Nombre / Apellido
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _firstCtrl,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: const InputDecoration(
+                          labelText: 'Nombre',
+                          prefixIcon: Icon(Icons.badge_outlined),
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _lastCtrl,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: const InputDecoration(
+                          labelText: 'Apellido',
+                          prefixIcon: Icon(Icons.badge_outlined),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Fecha de nacimiento
+                OutlinedButton.icon(
+                  onPressed: _pickBirthDate,
+                  icon: const Icon(Icons.cake_outlined),
+                  label: Text(
+                    _birthDate == null
+                        ? 'Fecha de nacimiento'
+                        : DateFormat.yMMMd(locale).format(_birthDate!),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SegmentedButton<String>(
+                ),
+                const SizedBox(height: 12),
+
+                // Género - CORREGIDO: Ahora con mejor diseño
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 12, bottom: 8),
+                      child: Text(
+                        'Género',
+                        style:
+                            Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                      ),
+                    ),
+                    SegmentedButton<String>(
                       segments: const [
-                        ButtonSegment(value: 'female', label: Text('Mujer')),
-                        ButtonSegment(value: 'male', label: Text('Hombre')),
-                        ButtonSegment(value: 'custom', label: Text('Otro')),
+                        ButtonSegment(
+                          value: 'female',
+                          label: Text('Mujer'),
+                          icon: Icon(Icons.female, size: 18),
+                        ),
+                        ButtonSegment(
+                          value: 'male',
+                          label: Text('Hombre'),
+                          icon: Icon(Icons.male, size: 18),
+                        ),
+                        ButtonSegment(
+                          value: 'custom',
+                          label: Text('Otro'),
+                          icon: Icon(Icons.person, size: 18),
+                        ),
                       ],
                       selected: {_gender},
                       onSelectionChanged: (s) =>
                           setState(() => _gender = s.first),
+                      style: ButtonStyle(
+                        visualDensity: VisualDensity.compact,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Teléfono / Dirección
+                TextField(
+                  controller: _phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Teléfono',
+                    prefixIcon: Icon(Icons.phone_outlined),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _addrCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Dirección',
+                    prefixIcon: Icon(Icons.home_outlined),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Botón de guardar flotante
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -3),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-
-              // Teléfono / Dirección
-              TextField(
-                controller: _phoneCtrl,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Teléfono',
-                  prefixIcon: Icon(Icons.phone_outlined),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _addrCtrl,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'Dirección',
-                  prefixIcon: Icon(Icons.home_outlined),
-                ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 20),
-              FilledButton.icon(
-                onPressed: _save,
-                icon: const Icon(Icons.save),
+              child: FilledButton.icon(
+                onPressed: _loading ? null : _save,
+                icon: _loading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation(Colors.white),
+                        ),
+                      )
+                    : const Icon(Icons.save),
                 label: const Text('Guardar cambios'),
               ),
-            ],
+            ),
           ),
           if (_loading)
-            const Positioned.fill(
-              child: IgnorePointer(
-                  child: Center(child: CircularProgressIndicator())),
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.1),
+                child: const Center(child: CircularProgressIndicator()),
+              ),
             ),
         ],
       ),

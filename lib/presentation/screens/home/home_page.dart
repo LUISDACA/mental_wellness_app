@@ -20,19 +20,19 @@ class HomePage extends StatelessWidget {
             const StatusBanner(),
             const SizedBox(height: 16),
             _NavCard(
-              title: 'Analyze Emotion',
+              title: 'Analizar emoción',
               subtitle: 'Escribe o dicta y analizamos tu emoción con IA',
               icon: Icons.favorite_outline,
               onTap: () => context.go('/analyze'),
             ),
             _NavCard(
-              title: 'History & Charts',
+              title: 'Historial y gráficas',
               subtitle: 'Evolución de tu estado emocional',
               icon: Icons.show_chart,
               onTap: () => context.go('/history'),
             ),
             _NavCard(
-              title: 'Companion Chat',
+              title: 'Chat de compañía',
               subtitle: 'Habla con un asistente empático',
               icon: Icons.chat_bubble_outline,
               onTap: () => context.go('/chat'),
@@ -69,7 +69,7 @@ class HomePage extends StatelessWidget {
                 await Supabase.instance.client.auth.signOut();
                 router.go('/sign-in');
               },
-              child: const Text('Sign out'),
+              child: const Text('Cerrar sesión'),
             ),
           ],
         ),

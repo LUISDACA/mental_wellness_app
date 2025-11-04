@@ -1,4 +1,4 @@
-import 'dart:convert'; // 👈 necesario para jsonDecode
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -129,26 +129,77 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
     }
   }
 
-  // ---------- UI helpers ----------
+  // ---------- UI helpers MEJORADOS ----------
+
+  // Iconos más modernos y distintivos
   IconData _iconFor(String cat) {
     switch (cat) {
       case 'hospital':
-        return Icons.local_hospital;
+        return Icons.local_hospital_rounded;
       case 'clinic':
-        return Icons.local_hospital_outlined;
+        return Icons.medical_services_rounded;
       case 'doctors':
-        return Icons.medical_services_outlined;
+        return Icons.healing_rounded;
       case 'pharmacy':
-        return Icons.local_pharmacy;
+        return Icons.local_pharmacy_rounded;
       case 'psychology':
-        return Icons.psychology_alt_outlined;
+        return Icons.psychology_rounded;
       case 'psychiatrist':
-        return Icons.psychology;
+        return Icons.self_improvement_rounded;
       case 'counselling':
+        return Icons.forum_rounded;
       case 'mental_health':
-        return Icons.health_and_safety_outlined;
+        return Icons.favorite_rounded;
       default:
-        return Icons.place;
+        return Icons.location_on_rounded;
+    }
+  }
+
+  // Colores personalizados para cada categoría
+  Color _colorFor(String cat) {
+    switch (cat) {
+      case 'hospital':
+        return Colors.red.shade700;
+      case 'clinic':
+        return Colors.orange.shade700;
+      case 'doctors':
+        return Colors.blue.shade700;
+      case 'pharmacy':
+        return Colors.green.shade700;
+      case 'psychology':
+        return Colors.purple.shade700;
+      case 'psychiatrist':
+        return Colors.indigo.shade700;
+      case 'counselling':
+        return Colors.teal.shade700;
+      case 'mental_health':
+        return Colors.pink.shade700;
+      default:
+        return Colors.grey.shade700;
+    }
+  }
+
+  // Color de fondo más claro para contraste
+  Color _bgColorFor(String cat) {
+    switch (cat) {
+      case 'hospital':
+        return Colors.red.shade50;
+      case 'clinic':
+        return Colors.orange.shade50;
+      case 'doctors':
+        return Colors.blue.shade50;
+      case 'pharmacy':
+        return Colors.green.shade50;
+      case 'psychology':
+        return Colors.purple.shade50;
+      case 'psychiatrist':
+        return Colors.indigo.shade50;
+      case 'counselling':
+        return Colors.teal.shade50;
+      case 'mental_health':
+        return Colors.pink.shade50;
+      default:
+        return Colors.grey.shade50;
     }
   }
 
@@ -311,7 +362,7 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
                 DropdownMenuItem(
                   value: TransportMode.walking,
                   child: Row(children: [
-                    Icon(Icons.directions_walk),
+                    Icon(Icons.directions_walk_rounded),
                     SizedBox(width: 6),
                     Text('Caminando')
                   ]),
@@ -319,7 +370,7 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
                 DropdownMenuItem(
                   value: TransportMode.driving,
                   child: Row(children: [
-                    Icon(Icons.directions_car),
+                    Icon(Icons.directions_car_rounded),
                     SizedBox(width: 6),
                     Text('Conduciendo')
                   ]),
@@ -327,7 +378,7 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
               ],
               onChanged: (m) =>
                   setState(() => _mode = m ?? TransportMode.walking),
-              icon: const Icon(Icons.directions),
+              icon: const Icon(Icons.route_rounded),
               padding: const EdgeInsets.symmetric(horizontal: 8),
             ),
           ),
@@ -343,18 +394,18 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
               PopupMenuItem(value: 5000, child: Text('5 km')),
               PopupMenuItem(value: 10000, child: Text('10 km')),
             ],
-            icon: const Icon(Icons.radar),
+            icon: const Icon(Icons.radar_rounded),
           ),
           IconButton(
             tooltip: 'Rebuscar',
             onPressed: _search,
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
           ),
         ],
       ),
       body: Column(
         children: [
-          // Filtros
+          // Filtros con chips coloreados
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
@@ -364,8 +415,19 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: FilterChip(
+                    avatar: Icon(
+                      _iconFor(cat),
+                      size: 18,
+                      color: selected ? Colors.white : _colorFor(cat),
+                    ),
                     label: Text(_labelFor(cat)),
                     selected: selected,
+                    selectedColor: _colorFor(cat),
+                    checkmarkColor: Colors.white,
+                    labelStyle: TextStyle(
+                      color: selected ? Colors.white : null,
+                      fontWeight: selected ? FontWeight.bold : null,
+                    ),
                     onSelected: (v) {
                       setState(() {
                         if (v) {
@@ -434,24 +496,112 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
                           ),
                         ],
                       ),
-                    // Marcadores
+                    // Marcadores MEJORADOS
                     MarkerLayer(
                       markers: [
+                        // Marcador de mi ubicación mejorado
                         if (_center != null)
                           Marker(
                             point: _center!,
-                            width: 36,
-                            height: 36,
-                            child: const Icon(Icons.my_location, size: 28),
+                            width: 48,
+                            height: 48,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                // Efecto de pulso
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.blue.withOpacity(0.2),
+                                  ),
+                                ),
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.blue.withOpacity(0.4),
+                                  ),
+                                ),
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.blue,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.person_pin,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                        // Marcadores de lugares con diseño mejorado
                         for (final p in visiblePlaces)
                           Marker(
-                            width: 44,
-                            height: 44,
+                            width: 56,
+                            height: 56,
                             point: LatLng(p.lat, p.lon),
                             child: GestureDetector(
                               onTap: () => _showPlace(p),
-                              child: Icon(_iconFor(p.category), size: 34),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  // Pin con sombra
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: _bgColorFor(p.category),
+                                      border: Border.all(
+                                        color: _colorFor(p.category),
+                                        width: 2,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.3),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      _iconFor(p.category),
+                                      size: 24,
+                                      color: _colorFor(p.category),
+                                    ),
+                                  ),
+                                  // Punta del pin
+                                  Positioned(
+                                    bottom: 6,
+                                    child: Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: _colorFor(p.category),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                       ],
@@ -472,23 +622,51 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
                     left: 12,
                     right: 12,
                     child: Card(
-                      elevation: 2,
+                      elevation: 4,
                       child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: Row(
                           children: [
-                            Icon(
-                              _mode == TransportMode.walking
-                                  ? Icons.directions_walk
-                                  : Icons.directions_car,
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                _mode == TransportMode.walking
+                                    ? Icons.directions_walk_rounded
+                                    : Icons.directions_car_rounded,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onPrimaryContainer,
+                              ),
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${(_routeMeters! / 1000).toStringAsFixed(2)} km • '
-                              '${_formatDuration(_routeSeconds!)} (${_modeLabel(_mode)})',
-                              style: Theme.of(context).textTheme.bodyMedium,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '${(_routeMeters! / 1000).toStringAsFixed(2)} km',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                  ),
+                                  Text(
+                                    '${_formatDuration(_routeSeconds!)} (${_modeLabel(_mode)})',
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
                             ),
-                            const Spacer(),
                             IconButton(
                               tooltip: 'Limpiar ruta',
                               onPressed: () {
@@ -498,7 +676,15 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
                                   _routeSeconds = null;
                                 });
                               },
-                              icon: const Icon(Icons.close),
+                              icon: const Icon(Icons.close_rounded),
+                              style: IconButton.styleFrom(
+                                backgroundColor: Theme.of(context)
+                                    .colorScheme
+                                    .errorContainer,
+                                foregroundColor: Theme.of(context)
+                                    .colorScheme
+                                    .onErrorContainer,
+                              ),
                             ),
                           ],
                         ),
@@ -511,7 +697,7 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.my_location),
+        icon: const Icon(Icons.my_location_rounded),
         label: const Text('Mi ubicación'),
         onPressed: _initLocation,
       ),
@@ -530,8 +716,22 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
         padding: const EdgeInsets.all(16),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(
-            leading: Icon(_iconFor(p.category)),
-            title: Text(p.name),
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: _bgColorFor(p.category),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                _iconFor(p.category),
+                color: _colorFor(p.category),
+                size: 28,
+              ),
+            ),
+            title: Text(
+              p.name,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             subtitle: Text(
               [
                 _labelFor(p.category),
@@ -539,47 +739,88 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
               ].join(' '),
             ),
           ),
+          const Divider(),
           if (p.tags['phone'] != null)
             ListTile(
-              leading: const Icon(Icons.call),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.call_rounded, color: Colors.green.shade700),
+              ),
               title: Text('${p.tags['phone']}'),
+              trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () =>
                   _launchUri(Uri(scheme: 'tel', path: '${p.tags['phone']}')),
             ),
           if (p.tags['website'] != null)
             ListTile(
-              leading: const Icon(Icons.public),
-              title: Text('${p.tags['website']}'),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.public_rounded, color: Colors.blue.shade700),
+              ),
+              title: const Text('Sitio web'),
+              subtitle: Text(
+                '${p.tags['website']}',
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: const Icon(Icons.open_in_new_rounded),
               onTap: () => _launchUri(Uri.parse('${p.tags['website']}')),
             ),
-          ListTile(
-            leading: const Icon(Icons.alt_route),
-            title: Text('Ruta (${_modeLabel(_mode)})'),
-            onTap: () async {
-              Navigator.of(context).pop();
-              await _fetchRouteTo(p);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.map),
-            title: const Text('Abrir en Google Maps'),
-            onTap: () async {
-              Navigator.of(context).pop();
-              final c = _center;
-              if (c != null) {
-                await _openInGoogleMaps(
-                  originLat: c.latitude,
-                  originLon: c.longitude,
-                  destLat: p.lat,
-                  destLon: p.lon,
-                  label: p.name,
-                );
-              } else {
-                final url = Uri.parse(
-                    'https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}(${Uri.encodeComponent(p.name)})');
-                await _launchUri(url);
-              }
-            },
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    await _fetchRouteTo(p);
+                  },
+                  icon: Icon(
+                    _mode == TransportMode.walking
+                        ? Icons.directions_walk_rounded
+                        : Icons.directions_car_rounded,
+                  ),
+                  label: Text('Ruta (${_modeLabel(_mode)})'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    final c = _center;
+                    if (c != null) {
+                      await _openInGoogleMaps(
+                        originLat: c.latitude,
+                        originLon: c.longitude,
+                        destLat: p.lat,
+                        destLon: p.lon,
+                        label: p.name,
+                      );
+                    } else {
+                      final url = Uri.parse(
+                          'https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}(${Uri.encodeComponent(p.name)})');
+                      await _launchUri(url);
+                    }
+                  },
+                  icon: const Icon(Icons.map_rounded),
+                  label: const Text('Google Maps'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
         ]),

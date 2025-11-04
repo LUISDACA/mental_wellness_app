@@ -1,5 +1,4 @@
 // lib/presentation/screens/sos/sos_page.dart
-import 'dart:typed_data';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +19,9 @@ class _Sos extends State<SosPage> {
 
   bool _loading = false;
   List<Map<String, dynamic>> _contacts = [];
+  Set<String> _uploadingAvatars =
+      {}; // Para rastrear qué avatares están cargando
+  Map<String, int> _imageTimestamps = {}; // Timestamps específicos por contacto
 
   @override
   void initState() {
@@ -42,9 +44,23 @@ class _Sos extends State<SosPage> {
     }
   }
 
-  String? _publicAvatarUrl(String? path) {
+  String? _publicAvatarUrl(String? path, String contactId) {
     if (path == null || path.isEmpty) return null;
-    return _sb.storage.from('sos_avatars').getPublicUrl(path);
+
+    // Limpiar el path si viene con el nombre del bucket
+    String cleanPath = path;
+    if (path.startsWith('sos_avatars/')) {
+      cleanPath = path.substring('sos_avatars/'.length);
+    }
+
+    final baseUrl = _sb.storage.from('sos_avatars').getPublicUrl(cleanPath);
+
+    // Solo agregar timestamp si existe uno específico para este contacto
+    final timestamp = _imageTimestamps[contactId];
+    if (timestamp != null) {
+      return '$baseUrl?t=$timestamp';
+    }
+    return baseUrl;
   }
 
   Future<void> _delete(String id) async {
@@ -55,8 +71,9 @@ class _Sos extends State<SosPage> {
         content: const Text('Esta acción no se puede deshacer.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Eliminar'),
@@ -69,6 +86,7 @@ class _Sos extends State<SosPage> {
     setState(() => _loading = true);
     try {
       await _repo.remove(id);
+      _imageTimestamps.remove(id);
       await _load();
     } catch (e) {
       if (!mounted) return;
@@ -88,19 +106,69 @@ class _Sos extends State<SosPage> {
     final bytes = file.bytes;
     if (bytes == null) return;
 
-    setState(() => _loading = true);
+    setState(() => _uploadingAvatars.add(id)); // Marcar como cargando
     try {
-      final ext = file.name.split('.').last.toLowerCase();
+      final ext = file.extension ?? 'jpg';
       final fileName = '${id}_${DateTime.now().millisecondsSinceEpoch}.$ext';
-      final path = await _sb.storage.from('sos_avatars').uploadBinary(
+
+      // Buscar el contacto actual
+      final contactIndex = _contacts.indexWhere((c) => c['id'] == id);
+      if (contactIndex == -1) return;
+
+      final contact = _contacts[contactIndex];
+      final oldAvatarPath = contact['avatar_path'];
+
+      // Limpiar caché de la imagen anterior si existe
+      if (oldAvatarPath != null) {
+        final oldUrl = _publicAvatarUrl(oldAvatarPath, id);
+        if (oldUrl != null) {
+          PaintingBinding.instance.imageCache.evict(NetworkImage(oldUrl));
+          PaintingBinding.instance.imageCache.clearLiveImages();
+        }
+        // Intentar eliminar el archivo anterior en Supabase
+        try {
+          String cleanOldPath = oldAvatarPath;
+          if (oldAvatarPath.startsWith('sos_avatars/')) {
+            cleanOldPath = oldAvatarPath.substring('sos_avatars/'.length);
+          }
+          await _sb.storage.from('sos_avatars').remove([cleanOldPath]);
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      // Subir la nueva imagen
+      final uploadPath = await _sb.storage.from('sos_avatars').uploadBinary(
             fileName,
             bytes,
-            fileOptions: FileOptions(upsert: true),
+            fileOptions: FileOptions(
+              contentType: 'image/$ext',
+              upsert: true,
+            ),
           );
 
-      // Actualizar avatar en la base de datos
-      await _repo.upsert(id: id, data: {'avatar_path': path});
-      await _load();
+      // El path devuelto puede incluir el bucket; guardamos solo el filename
+      final pathToSave =
+          uploadPath.contains('/') ? uploadPath.split('/').last : uploadPath;
+
+      // Actualizar en la base de datos
+      await _repo.upsert(id: id, data: {'avatar_path': pathToSave});
+
+      // Actualizar solo este contacto en la lista local
+      setState(() {
+        _contacts[contactIndex] = {
+          ..._contacts[contactIndex],
+          'avatar_path': pathToSave,
+        };
+        // Establecer timestamp para forzar recarga solo de esta imagen
+        _imageTimestamps[id] = DateTime.now().millisecondsSinceEpoch;
+      });
+
+      // Pre-cargar la nueva imagen
+      final newUrl = _publicAvatarUrl(pathToSave, id);
+      if (newUrl != null) {
+        await precacheImage(NetworkImage(newUrl), context);
+      }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -109,10 +177,10 @@ class _Sos extends State<SosPage> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo subir imagen: $e')),
+        SnackBar(content: Text('Error: ${e.toString()}')),
       );
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _uploadingAvatars.remove(id));
     }
   }
 
@@ -175,9 +243,10 @@ class _Sos extends State<SosPage> {
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (_, i) {
                 final c = _contacts[i];
-                final avatarUrl = _publicAvatarUrl(c['avatar_path']);
+                final avatarUrl = _publicAvatarUrl(c['avatar_path'], c['id']);
                 final phone = (c['phone'] ?? '').toString().trim();
                 final email = (c['email'] ?? '').toString().trim();
+                final isUploadingAvatar = _uploadingAvatars.contains(c['id']);
 
                 return Card(
                   child: Column(
@@ -186,30 +255,93 @@ class _Sos extends State<SosPage> {
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
                         leading: Stack(
+                          clipBehavior: Clip.none,
                           children: [
-                            CircleAvatar(
-                              radius: 26,
-                              backgroundImage: (avatarUrl != null)
-                                  ? NetworkImage(avatarUrl)
-                                  : null,
-                              child: (avatarUrl == null)
-                                  ? const Icon(Icons.person, size: 28)
-                                  : null,
-                            ),
-                            Positioned(
-                              bottom: -4,
-                              right: -6,
-                              child: IconButton(
-                                visualDensity: VisualDensity.compact,
-                                style: IconButton.styleFrom(
-                                  backgroundColor:
-                                      Theme.of(context).colorScheme.primary,
-                                  foregroundColor: Colors.white,
-                                  padding: EdgeInsets.zero,
+                            // Avatar con indicador de carga
+                            Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                CircleAvatar(
+                                  radius: 26,
+                                  backgroundColor: Theme.of(context)
+                                      .colorScheme
+                                      .surfaceVariant,
+                                  backgroundImage: (avatarUrl != null)
+                                      ? NetworkImage(avatarUrl)
+                                      : null,
+                                  onBackgroundImageError: (avatarUrl != null)
+                                      ? (exception, stackTrace) {
+                                          // ignore
+                                        }
+                                      : null,
+                                  child: (avatarUrl == null)
+                                      ? Icon(
+                                          Icons.person,
+                                          size: 28,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                        )
+                                      : null,
                                 ),
-                                onPressed: () => _pickAvatarAndUpload(c['id']),
-                                icon: const Icon(Icons.camera_alt, size: 16),
-                                tooltip: 'Cambiar foto',
+                                // Indicador de carga sobre la foto
+                                if (isUploadingAvatar)
+                                  Container(
+                                    width: 52,
+                                    height: 52,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.black54,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Center(
+                                      child: SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.white),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            // Botón de cámara posicionado (compacto)
+                            Positioned(
+                              bottom: -2,
+                              right: -2,
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Theme.of(context)
+                                          .scaffoldBackgroundColor,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: IconButton(
+                                    onPressed: isUploadingAvatar
+                                        ? null
+                                        : () => _pickAvatarAndUpload(c['id']),
+                                    icon: const Icon(Icons.camera_alt),
+                                    iconSize: 12,
+                                    style: IconButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      padding: EdgeInsets.zero,
+                                      minimumSize: const Size(24, 24),
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    tooltip: 'Cambiar foto',
+                                  ),
+                                ),
                               ),
                             ),
                           ],
@@ -246,15 +378,17 @@ class _Sos extends State<SosPage> {
                           },
                           itemBuilder: (_) => const [
                             PopupMenuItem(
-                                value: 'edit',
-                                child: ListTile(
-                                    leading: Icon(Icons.edit),
-                                    title: Text('Editar'))),
+                              value: 'edit',
+                              child: ListTile(
+                                  leading: Icon(Icons.edit),
+                                  title: Text('Editar')),
+                            ),
                             PopupMenuItem(
-                                value: 'delete',
-                                child: ListTile(
-                                    leading: Icon(Icons.delete),
-                                    title: Text('Eliminar'))),
+                              value: 'delete',
+                              child: ListTile(
+                                  leading: Icon(Icons.delete),
+                                  title: Text('Eliminar')),
+                            ),
                           ],
                         ),
                         isThreeLine: phone.isNotEmpty || email.isNotEmpty,
@@ -264,7 +398,7 @@ class _Sos extends State<SosPage> {
                             ? () => launchUrl(Uri.parse('tel:$phone'))
                             : null,
                       ),
-                      // Acciones rápidas - Wrap para evitar overflow
+                      // Acciones rápidas
                       if (phone.isNotEmpty || email.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
@@ -302,10 +436,8 @@ class _Sos extends State<SosPage> {
                                         phone.replaceAll(RegExp(r'[^\d+]'), '');
                                     final wa =
                                         Uri.parse('https://wa.me/$digits');
-                                    launchUrl(
-                                      wa,
-                                      mode: LaunchMode.externalApplication,
-                                    );
+                                    launchUrl(wa,
+                                        mode: LaunchMode.externalApplication);
                                   },
                                   icon: const FaIcon(FontAwesomeIcons.whatsapp,
                                       size: 18),

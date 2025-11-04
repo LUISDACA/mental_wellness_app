@@ -348,7 +348,7 @@ class _TypingBubbleState extends State<_TypingBubble> {
   @override
   void initState() {
     super.initState();
-    t = Timer.periodic(const Duration(milliseconds: 400), () {
+    _t = Timer.periodic(const Duration(milliseconds: 400), (_) {
       setState(() => _dots = _dots % 3 + 1);
     });
   }

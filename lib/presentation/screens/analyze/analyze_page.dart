@@ -1,6 +1,8 @@
 // lib/presentation/screens/analyze/analyze_page.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -31,10 +33,25 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
   // filas crudas desde Supabase
   List<Map<String, dynamic>> _history = [];
 
+  // === Overlay de resultado (solo al terminar el análisis) ===
+  bool _showResult = false;
+  String? _rEmotion;
+  int? _rSeverity; // 0..100
+  num? _rScore; // 0..1
+  String? _rAdvice;
+
   @override
   void initState() {
     super.initState();
     _prime();
+  }
+
+  @override
+  void dispose() {
+    _listCtrl.dispose();
+    _textCtrl.dispose();
+    // _speech.stop(); // SpeechService no expone dispose, solo paramos si estaba activo
+    super.dispose();
   }
 
   Future<void> _prime() async {
@@ -137,8 +154,11 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
 
     setState(() => _loading = true);
     try {
-      // 1) analiza con IA
-      final res = await gemini.analyzeText(input);
+      // 1) analiza con IA (forzando español)
+      final res = await gemini.analyzeText(
+        '$input\n\nResponde SIEMPRE en español, con tono empático y claro. '
+        'Devuelve emoción, severidad (0-100), puntaje (0-1) y un consejo breve.',
+      );
       ref.read(lastEmotionProvider.notifier).state = res;
 
       // 2) guarda en DB
@@ -174,6 +194,13 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
           'model': Env.geminiModel,
         });
         _textCtrl.clear();
+
+        // 4) activa overlay con el resultado
+        _rEmotion = res.emotion;
+        _rSeverity = res.severity;
+        _rScore = res.score;
+        _rAdvice = res.advice;
+        _showResult = true;
       });
 
       // baja scroll al final
@@ -186,24 +213,7 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
         );
       }
 
-      // 4) alerta rápida (opcional)
-      if (!mounted) return;
-      if (res.severity >= 75) {
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('Severidad alta'),
-            content: Text(
-                'Detectamos ${res.emotion} con severidad ${res.severity}/100.\n'
-                'Si estás en riesgo, busca ayuda inmediata (112/911 o contacto SOS).'),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('OK'))
-            ],
-          ),
-        );
-      }
+      // (Quitamos el diálogo "Severidad alta" para no duplicar con el overlay)
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -216,6 +226,7 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
   @override
   Widget build(BuildContext context) {
     final locale = Localizations.localeOf(context).toString();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Analizar emoción'),
@@ -384,6 +395,124 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
               ),
             ],
           ),
+
+          // === Overlay con el resultado del análisis (solo después de presionar "Analizar") ===
+          if (_showResult)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () =>
+                    setState(() => _showResult = false), // cerrar tocando fuera
+                child: Container(
+                  color: Colors.black54, // fondo semi-transparente
+                  alignment: Alignment.center,
+                  child: GestureDetector(
+                    onTap: () {}, // evita cerrar al tocar la tarjeta
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 520),
+                      child: Card(
+                        elevation: 8,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.auto_graph, size: 26),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Análisis de tu emoción',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(
+                                              fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Chips de emoción / severidad / score
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  if (_rEmotion != null &&
+                                      _rEmotion!.isNotEmpty)
+                                    Chip(
+                                      label: Text(_rEmotion!),
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                  if (_rSeverity != null)
+                                    Chip(
+                                      label: Text('Severidad ${_rSeverity}/100'
+                                          '${_rScore != null ? " • ${((_rScore! * 100).toStringAsFixed(0))}%" : ""}'),
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 10),
+
+                              // Barra visual de severidad
+                              if (_rSeverity != null) ...[
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: LinearProgressIndicator(
+                                    value: (_rSeverity!.clamp(0, 100)) / 100.0,
+                                    minHeight: 8,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                              ],
+
+                              // Consejo breve
+                              if (_rAdvice != null && _rAdvice!.isNotEmpty)
+                                Text(
+                                  _rAdvice!,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+
+                              const SizedBox(height: 16),
+
+                              // Botones
+                              Row(
+                                children: [
+                                  if ((_rSeverity ?? 0) >= 75) ...[
+                                    FilledButton.icon(
+                                      onPressed: () {
+                                        setState(() => _showResult = false);
+                                        context.go('/sos');
+                                      },
+                                      icon: const Icon(Icons.sos),
+                                      label: const Text('Ver SOS'),
+                                    ),
+                                    const SizedBox(width: 8),
+                                  ],
+                                  OutlinedButton(
+                                    onPressed: () =>
+                                        setState(() => _showResult = false),
+                                    child: const Text('Cerrar'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+          // loading global
           if (_loading)
             const Positioned.fill(
               child: IgnorePointer(
@@ -393,13 +522,5 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
         ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _listCtrl.dispose();
-    _textCtrl.dispose();
-    // _speech.stop(); // SpeechService no expone dispose, solo paramos si estaba activo
-    super.dispose();
   }
 }

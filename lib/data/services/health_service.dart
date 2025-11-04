@@ -7,11 +7,17 @@ class HealthCheckResult {
   final bool geminiOk;
   final String? supabaseError;
   final String? geminiError;
-  HealthCheckResult({required this.supabaseOk, required this.geminiOk, this.supabaseError, this.geminiError});
+  HealthCheckResult(
+      {required this.supabaseOk,
+      required this.geminiOk,
+      this.supabaseError,
+      this.geminiError});
 }
 
 class HealthService {
   final _sb = Supabase.instance.client;
+
+  Future<bool> init() => _checkSupabase();
 
   Future<bool> _checkSupabase() async {
     try {
@@ -34,7 +40,8 @@ class HealthService {
 
   Future<(bool, String?)> _checkGemini() async {
     try {
-      final model = GenerativeModel(model: Env.geminiModel, apiKey: Env.geminiApiKey);
+      final model =
+          GenerativeModel(model: Env.geminiModel, apiKey: Env.geminiApiKey);
       final res = await model.generateContent([Content.text('ping')]);
       final ok = (res.text ?? '').isNotEmpty;
       return (ok, ok ? null : 'Empty response');
@@ -46,6 +53,7 @@ class HealthService {
   Future<HealthCheckResult> run() async {
     final (sOk, sErr) = await _checkSupabaseVerbose();
     final (gOk, gErr) = await _checkGemini();
-    return HealthCheckResult(supabaseOk: sOk, geminiOk: gOk, supabaseError: sErr, geminiError: gErr);
+    return HealthCheckResult(
+        supabaseOk: sOk, geminiOk: gOk, supabaseError: sErr, geminiError: gErr);
   }
 }

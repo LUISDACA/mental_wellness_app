@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../data/repositories/chat_repository.dart';
@@ -38,6 +39,9 @@ class _CP extends ConsumerState<ChatPage> {
   Future<void> _loadInitial() async {
     try {
       final rows = await _repo.all(); // [{role, content, created_at}, ...]
+      // Ordena por fecha ascendente por si el repo no lo garantiza
+      rows.sort((a, b) =>
+          _parseDt(a['created_at']).compareTo(_parseDt(b['created_at'])));
       _messages
         ..clear()
         ..addAll(rows.map((e) => {
@@ -133,6 +137,26 @@ class _CP extends ConsumerState<ChatPage> {
     }
   }
 
+  // ---------- Helpers de fecha ----------
+  DateTime _parseDt(dynamic v) {
+    if (v is DateTime) return v;
+    return DateTime.tryParse('$v') ?? DateTime.now();
+  }
+
+  bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  String _dayLabel(BuildContext context, DateTime dt) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final that = DateTime(dt.year, dt.month, dt.day);
+    final locale = Localizations.localeOf(context).toString();
+
+    if (that == today) return 'Hoy';
+    if (that == today.subtract(const Duration(days: 1))) return 'Ayer';
+    return DateFormat.yMMMMd(locale).format(dt);
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = Supabase.instance.client.auth.currentUser;
@@ -167,9 +191,10 @@ class _CP extends ConsumerState<ChatPage> {
                     controller: _scroll,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 10),
+                    // mensajes + 1 fila extra si el asistente está "escribiendo…"
                     itemCount: _messages.length + (_assistantTyping ? 1 : 0),
                     itemBuilder: (context, index) {
-                      // si el último es "escribiendo..."
+                      // Fila de "escribiendo…"
                       final isTypingRow =
                           _assistantTyping && index == _messages.length;
                       if (isTypingRow) {
@@ -178,7 +203,20 @@ class _CP extends ConsumerState<ChatPage> {
 
                       final m = _messages[index];
                       final isUser = m['role'] == 'user';
-                      return Align(
+                      final dt = _parseDt(m['created_at']).toLocal();
+
+                      // ¿Debo mostrar separador de día antes de este mensaje?
+                      bool showHeader = false;
+                      if (index == 0) {
+                        showHeader = true;
+                      } else {
+                        final prevDt =
+                            _parseDt(_messages[index - 1]['created_at'])
+                                .toLocal();
+                        showHeader = !_sameDay(prevDt, dt);
+                      }
+
+                      final bubble = Align(
                         alignment: isUser
                             ? Alignment.centerRight
                             : Alignment.centerLeft,
@@ -203,6 +241,17 @@ class _CP extends ConsumerState<ChatPage> {
                             ),
                           ),
                         ),
+                      );
+
+                      if (!showHeader) return bubble;
+
+                      // Encabeza con separador de fecha
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _DateDivider(label: _dayLabel(context, dt)),
+                          bubble,
+                        ],
                       );
                     },
                   ),
@@ -245,6 +294,45 @@ class _CP extends ConsumerState<ChatPage> {
   }
 }
 
+/// Separador centrado con la fecha del día
+class _DateDivider extends StatelessWidget {
+  final String label;
+  const _DateDivider({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+        Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(child: Divider(color: color)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withOpacity(0.6),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(label,
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelMedium
+                      ?.copyWith(color: color)),
+            ),
+          ),
+          Expanded(child: Divider(color: color)),
+        ],
+      ),
+    );
+  }
+}
+
 /// Burbuja “escribiendo…” con 3 puntitos animados simples
 class _TypingBubble extends StatefulWidget {
   const _TypingBubble();
@@ -260,7 +348,7 @@ class _TypingBubbleState extends State<_TypingBubble> {
   @override
   void initState() {
     super.initState();
-    _t = Timer.periodic(const Duration(milliseconds: 400), (_) {
+    t = Timer.periodic(const Duration(milliseconds: 400), () {
       setState(() => _dots = _dots % 3 + 1);
     });
   }

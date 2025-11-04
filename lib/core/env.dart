@@ -9,7 +9,6 @@ class Env {
 
   static const geminiModel = String.fromEnvironment(
     'GEMINI_MODEL',
-    defaultValue: 'gemini-1.5-flash-latest',
   );
 
   static const defaultSosLabel = String.fromEnvironment(
@@ -17,7 +16,6 @@ class Env {
     defaultValue: 'Emergency',
   );
 
-  /// ✅ En web, usa SIEMPRE constructores const de entorno:
   static const offlineMode =
       bool.fromEnvironment('OFFLINE_MODE', defaultValue: false);
 }

@@ -8,9 +8,6 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sb = Supabase.instance.client;
-    final user = sb.auth.currentUser;
-
     return Scaffold(
       appBar: AppBar(title: const Text('Bienestar Emocional')),
       body: Padding(

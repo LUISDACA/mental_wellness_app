@@ -86,8 +86,9 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
         const SnackBar(content: Text('No se pudo obtener tu ubicación')),
       );
     } finally {
-      if (!mounted) return;
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 

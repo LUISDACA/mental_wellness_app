@@ -657,10 +657,12 @@ class _Entry {
 
   static String _canonicalEmotion(String raw) {
     final s = raw.trim().toLowerCase();
-    if (s == 'happiness' || s == 'felicidad' || s.contains('alegr'))
+    if (s == 'happiness' || s == 'felicidad' || s.contains('alegr')) {
       return 'happiness';
-    if (s == 'sadness' || s == 'tristeza' || s.contains('depres'))
+    }
+    if (s == 'sadness' || s == 'tristeza' || s.contains('depres')) {
       return 'sadness';
+    }
     if (s == 'anxiety' ||
         s == 'ansiedad' ||
         s.contains('estres') ||
@@ -668,10 +670,12 @@ class _Entry {
         s.contains('miedo')) {
       return 'anxiety';
     }
-    if (s == 'anger' || s == 'enojo' || s == 'ira' || s.contains('rabia'))
+    if (s == 'anger' || s == 'enojo' || s == 'ira' || s.contains('rabia')) {
       return 'anger';
-    if (s == 'neutral' || s.contains('calm') || s.contains('tranq'))
+    }
+    if (s == 'neutral' || s.contains('calm') || s.contains('tranq')) {
       return 'neutral';
+    }
     return 'neutral';
   }
 }

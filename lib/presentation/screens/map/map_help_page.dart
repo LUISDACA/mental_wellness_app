@@ -127,8 +127,9 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
         SnackBar(content: Text('Error buscando centros: $e')),
       );
     } finally {
-      if (!mounted) return;
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -289,8 +290,9 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
         SnackBar(content: Text('No fue posible calcular la ruta: $e')),
       );
     } finally {
-      if (!mounted) return;
-      setState(() => _loading = false);
+      if (!mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 

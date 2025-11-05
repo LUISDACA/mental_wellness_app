@@ -68,7 +68,9 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
         _center = const LatLng(40.4168, -3.7038);
       } else {
         final pos = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+          ),
         );
         _center = LatLng(pos.latitude, pos.longitude);
       }

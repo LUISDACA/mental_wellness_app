@@ -302,7 +302,7 @@ class _DateDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color =
-        Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7);
+        Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(

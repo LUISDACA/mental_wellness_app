@@ -28,10 +28,9 @@ class Profile {
   });
 
   factory Profile.fromMap(Map<String, dynamic> m) {
-    DateTime? _parseDate(dynamic v) {
+    DateTime? parseDate(dynamic v) {
       if (v == null) return null;
       final s = v.toString();
-      // Puede venir 'YYYY-MM-DD' o ISO
       try {
         return DateTime.parse(s);
       } catch (_) {
@@ -46,7 +45,7 @@ class Profile {
       lastName: m['last_name'] as String?,
       fullName: m['full_name'] as String?,
       gender: m['gender'] as String?,
-      birthDate: _parseDate(m['birth_date']),
+      birthDate: parseDate(m['birth_date']),
       phone: m['phone'] as String?,
       address: m['address'] as String?,
       avatarPath: m['avatar_path'] as String?,

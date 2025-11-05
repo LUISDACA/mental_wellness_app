@@ -276,7 +276,7 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
                             color: Theme.of(context)
                                 .colorScheme
                                 .surfaceContainerHighest
-                                .withOpacity(0.4),
+                                .withValues(alpha: 0.4),
                             child: Padding(
                               padding:
                                   const EdgeInsets.fromLTRB(12, 12, 12, 12),

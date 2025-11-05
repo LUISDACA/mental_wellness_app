@@ -88,8 +88,9 @@ class ProfileService {
     put('last_name', lastName);
     put('full_name', fullName);
     put('gender', gender);
-    if (birthDate != null)
+    if (birthDate != null) {
       put('birth_date', birthDate.toIso8601String().substring(0, 10));
+    }
     put('phone', phone);
     put('address', address);
     put('avatar_path', avatarPath);

@@ -451,7 +451,7 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
                                     ),
                                   if (_rSeverity != null)
                                     Chip(
-                                      label: Text('Severidad ${_rSeverity}/100'
+                                      label: Text('Severidad $_rSeverity/100'
                                           '${_rScore != null ? " • ${((_rScore! * 100).toStringAsFixed(0))}%" : ""}'),
                                       visualDensity: VisualDensity.compact,
                                     ),

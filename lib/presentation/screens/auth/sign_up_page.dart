@@ -206,7 +206,7 @@ class _SignUpPageState extends State<SignUpPage> {
                           Expanded(
                             child: DropdownButtonFormField<int>(
                               isExpanded: true,
-                              value: _day,
+                              initialValue: _day,
                               items: List.generate(
                                 31,
                                 (i) => DropdownMenuItem(
@@ -223,7 +223,7 @@ class _SignUpPageState extends State<SignUpPage> {
                           Expanded(
                             child: DropdownButtonFormField<int>(
                               isExpanded: true,
-                              value: _month,
+                              initialValue: _month,
                               items: List.generate(
                                 12,
                                 (i) => DropdownMenuItem(
@@ -240,7 +240,7 @@ class _SignUpPageState extends State<SignUpPage> {
                           Expanded(
                             child: DropdownButtonFormField<int>(
                               isExpanded: true,
-                              value: _year,
+                              initialValue: _year,
                               items: List.generate(
                                 100,
                                 (i) {

@@ -45,8 +45,7 @@ class _SignUpPageState extends State<SignUpPage> {
     return dt.year == y && dt.month == m && dt.day == d;
   }
 
-  String? _yyyyMMdd(DateTime? d) =>
-      d == null ? null : d.toIso8601String().substring(0, 10);
+  String? _yyyyMMdd(DateTime? d) => (d?.toIso8601String())?.substring(0, 10);
 
   Future<void> _tryUpsertProfile(String? uid) async {
     if (uid == null) return; // si el registro requiere verificación por email

@@ -316,7 +316,7 @@ class _DateDivider extends StatelessWidget {
                 color: Theme.of(context)
                     .colorScheme
                     .surfaceContainerHighest
-                    .withOpacity(0.6),
+                    .withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(label,

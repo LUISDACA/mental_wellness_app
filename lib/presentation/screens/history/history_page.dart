@@ -443,7 +443,10 @@ class _Chart extends StatelessWidget {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Theme.of(context).colorScheme.primary.withOpacity(0.25),
+                        Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.25),
                         Colors.transparent
                       ],
                     ),
@@ -497,7 +500,7 @@ class _DangerBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: Colors.red.withOpacity(0.08),
+      color: Colors.red.withValues(alpha: 0.08),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

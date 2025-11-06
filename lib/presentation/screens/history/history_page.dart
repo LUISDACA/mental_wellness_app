@@ -544,7 +544,7 @@ class _CongratsBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: Colors.green.withOpacity(0.07),
+      color: Colors.green.withValues(alpha: 0.07),
       child: ListTile(
         leading: const Icon(Icons.emoji_events, color: Colors.green),
         title: const Text('¡Buen trabajo!'),
@@ -577,11 +577,11 @@ class _DominantBanner extends StatelessWidget {
     };
 
     final colors = {
-      'happiness': Colors.green.withOpacity(0.07),
-      'sadness': Colors.blueGrey.withOpacity(0.08),
-      'anxiety': Colors.orange.withOpacity(0.08),
-      'anger': Colors.redAccent.withOpacity(0.08),
-      'neutral': Colors.blueGrey.withOpacity(0.06),
+      'happiness': Colors.green.withValues(alpha: 0.07),
+      'sadness': Colors.blueGrey.withValues(alpha: 0.08),
+      'anxiety': Colors.orange.withValues(alpha: 0.08),
+      'anger': Colors.redAccent.withValues(alpha: 0.08),
+      'neutral': Colors.blueGrey.withValues(alpha: 0.06),
     };
 
     final icons = {

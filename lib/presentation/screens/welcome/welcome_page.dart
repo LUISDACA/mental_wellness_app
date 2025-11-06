@@ -31,8 +31,8 @@ class WelcomePage extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    cs.primaryContainer.withOpacity(0.35),
-                    cs.secondaryContainer.withOpacity(0.25),
+                    cs.primaryContainer.withValues(alpha: 0.35),
+                    cs.secondaryContainer.withValues(alpha: 0.25),
                     cs.surface,
                   ],
                 ),
@@ -42,12 +42,13 @@ class WelcomePage extends StatelessWidget {
           Positioned(
             top: -80,
             right: -40,
-            child: _Bubble(color: cs.primary.withOpacity(.12), size: 220),
+            child: _Bubble(color: cs.primary.withValues(alpha: .12), size: 220),
           ),
           Positioned(
             bottom: -100,
             left: -60,
-            child: _Bubble(color: cs.secondary.withOpacity(.10), size: 260),
+            child:
+                _Bubble(color: cs.secondary.withValues(alpha: .10), size: 260),
           ),
 
           // Contenido
@@ -103,7 +104,7 @@ class _HeroPanel extends StatelessWidget {
 
     return Card(
       elevation: 0,
-      color: cs.surface.withOpacity(.7),
+      color: cs.surface.withValues(alpha: .7),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -123,7 +124,7 @@ class _HeroPanel extends StatelessWidget {
                     child: Icon(
                       Icons.self_improvement,
                       size: iconSize,
-                      color: cs.primary.withOpacity(.85),
+                      color: cs.primary.withValues(alpha: .85),
                     ),
                   ),
                   // Chips posicionados - MEJORADO para evitar superposición
@@ -260,7 +261,7 @@ class _Chip extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: cs.primaryContainer.withOpacity(.65),
+        color: cs.primaryContainer.withValues(alpha: .65),
         borderRadius: BorderRadius.circular(100),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

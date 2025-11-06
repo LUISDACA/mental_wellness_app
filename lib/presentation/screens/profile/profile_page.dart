@@ -72,6 +72,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final file = res.files.single;
     final bytes = file.bytes;
     if (bytes == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No se pudo leer el archivo')));
       return;

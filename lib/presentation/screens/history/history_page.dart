@@ -388,7 +388,7 @@ class _Chart extends StatelessWidget {
               extraLinesData: ExtraLinesData(horizontalLines: [
                 HorizontalLine(
                   y: dangerLine,
-                  color: Colors.red.withOpacity(0.35),
+                  color: Colors.red.withValues(alpha: 0.35),
                   strokeWidth: 2,
                   dashArray: const [8, 6],
                   label: HorizontalLineLabel(
@@ -400,7 +400,7 @@ class _Chart extends StatelessWidget {
                 ),
                 HorizontalLine(
                   y: lowLine,
-                  color: Colors.green.withOpacity(0.35),
+                  color: Colors.green.withValues(alpha: 0.35),
                   strokeWidth: 2,
                   dashArray: const [8, 6],
                   label: HorizontalLineLabel(

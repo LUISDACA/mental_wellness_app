@@ -19,9 +19,10 @@ class _Sos extends State<SosPage> {
 
   bool _loading = false;
   List<Map<String, dynamic>> _contacts = [];
-  Set<String> _uploadingAvatars =
+  final Set<String> _uploadingAvatars =
       {}; // Para rastrear qué avatares están cargando
-  Map<String, int> _imageTimestamps = {}; // Timestamps específicos por contacto
+  final Map<String, int> _imageTimestamps =
+      {}; // Timestamps específicos por contacto
 
   @override
   void initState() {

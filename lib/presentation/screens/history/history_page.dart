@@ -295,7 +295,8 @@ class _HistoryPageState extends State<HistoryPage> {
               for (final e in _view.reversed.take(10))
                 ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: _colorFor(e.emotion).withOpacity(0.15),
+                    backgroundColor:
+                        _colorFor(e.emotion).withValues(alpha: 0.15),
                     child: Icon(Icons.favorite, color: _colorFor(e.emotion)),
                   ),
                   title: Text(
@@ -352,7 +353,7 @@ class _Chart extends StatelessWidget {
                 drawVerticalLine: false,
                 horizontalInterval: 10,
                 getDrawingHorizontalLine: (v) => FlLine(
-                  color: Theme.of(context).dividerColor.withOpacity(0.3),
+                  color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
                   strokeWidth: 1,
                 ),
               ),

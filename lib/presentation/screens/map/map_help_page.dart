@@ -484,7 +484,7 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
                           color: Theme.of(context)
                               .colorScheme
                               .primary
-                              .withOpacity(0.15),
+                              .withValues(alpha: 0.15),
                           borderColor: Theme.of(context).colorScheme.primary,
                           borderStrokeWidth: 2,
                           radius: (_radius / 2).toDouble(),
@@ -519,7 +519,7 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
                                   height: 48,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: Colors.blue.withOpacity(0.2),
+                                    color: Colors.blue.withValues(alpha: 0.2),
                                   ),
                                 ),
                                 Container(
@@ -527,7 +527,7 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
                                   height: 36,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: Colors.blue.withOpacity(0.4),
+                                    color: Colors.blue.withValues(alpha: 0.4),
                                   ),
                                 ),
                                 Container(
@@ -542,7 +542,8 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
+                                        color:
+                                            Colors.black.withValues(alpha: 0.2),
                                         blurRadius: 4,
                                         offset: const Offset(0, 2),
                                       ),
@@ -581,7 +582,8 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.3),
+                                          color: Colors.black
+                                              .withValues(alpha: 0.3),
                                           blurRadius: 6,
                                           offset: const Offset(0, 3),
                                         ),

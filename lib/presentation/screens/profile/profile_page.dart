@@ -298,7 +298,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       selected: {_gender},
                       onSelectionChanged: (s) =>
                           setState(() => _gender = s.first),
-                      style: ButtonStyle(
+                      style: const ButtonStyle(
                         visualDensity: VisualDensity.compact,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),

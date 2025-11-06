@@ -168,6 +168,7 @@ class _Sos extends State<SosPage> {
       // Pre-cargar la nueva imagen
       final newUrl = _publicAvatarUrl(pathToSave, id);
       if (newUrl != null) {
+        if (!mounted) return;
         await precacheImage(NetworkImage(newUrl), context);
       }
 
@@ -266,7 +267,7 @@ class _Sos extends State<SosPage> {
                                   radius: 26,
                                   backgroundColor: Theme.of(context)
                                       .colorScheme
-                                      .surfaceVariant,
+                                      .surfaceContainerHighest,
                                   backgroundImage: (avatarUrl != null)
                                       ? NetworkImage(avatarUrl)
                                       : null,

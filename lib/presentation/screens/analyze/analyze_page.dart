@@ -1,4 +1,3 @@
-// lib/presentation/screens/analyze/analyze_page.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,13 +26,9 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
   bool _loading = false;
   bool _listening = false;
 
-  // avatar del usuario logeado (la misma imagen para todos los items del historial)
   String? _avatarUrl;
-
-  // filas crudas desde Supabase
   List<Map<String, dynamic>> _history = [];
 
-  // === Overlay de resultado (solo al terminar el análisis) ===
   bool _showResult = false;
   String? _rEmotion;
   int? _rSeverity; // 0..100
@@ -50,18 +45,14 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
   void dispose() {
     _listCtrl.dispose();
     _textCtrl.dispose();
-    // _speech.stop(); // SpeechService no expone dispose, solo paramos si estaba activo
     super.dispose();
   }
 
   Future<void> _prime() async {
     setState(() => _loading = true);
     try {
-      // avatar
       final me = await _profileSvc.getOrCreateMyProfile();
       _avatarUrl = _profileSvc.publicAvatarUrl(me.avatarPath);
-
-      // historial
       await _loadHistory();
     } catch (e) {
       if (!mounted) return;
@@ -84,18 +75,15 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
         .from('emotion_entries')
         .select()
         .eq('user_id', uid)
-        // ORDEN VIEJO → NUEVO (ASCENDENTE)
         .order('created_at', ascending: true)
         .limit(200);
 
-    // normaliza a Map<String, dynamic>
     final parsed = (rows as List)
         .map((e) => (e as Map).map((k, v) => MapEntry('$k', v)))
         .toList();
 
     setState(() => _history = parsed);
 
-    // baja el scroll al final (el más nuevo abajo)
     await Future.delayed(const Duration(milliseconds: 40));
     if (_listCtrl.hasClients) {
       _listCtrl.jumpTo(_listCtrl.position.maxScrollExtent);
@@ -107,7 +95,6 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
       final status = await Permission.microphone.request();
       return status.isGranted || status.isLimited;
     } catch (_) {
-      // En web/desktop puede no aplicar
       return true;
     }
   }
@@ -145,6 +132,20 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
     });
   }
 
+  // Detecta si el resultado corresponde al caso "no puedo analizar este mensaje"
+  bool _isOutOfScopeResult({
+    required String emotion,
+    required int severity,
+    required num score,
+    required String advice,
+  }) {
+    return emotion.toLowerCase() == 'neutral' &&
+        severity == 0 &&
+        (score == 0 || score == 0.0) &&
+        advice.contains(
+            'No puedo analizar este mensaje porque no está relacionado con tus emociones o tu bienestar emocional');
+  }
+
   Future<void> _onAnalyze() async {
     final input = _textCtrl.text.trim();
     if (input.isEmpty) return;
@@ -154,14 +155,33 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
 
     setState(() => _loading = true);
     try {
-      // 1) analiza con IA (forzando español)
-      final res = await gemini.analyzeText(
-        '$input\n\nResponde SIEMPRE en español, con tono empático y claro. '
-        'Devuelve emoción, severidad (0-100), puntaje (0-1) y un consejo breve.',
-      );
+      // 1) analizamos SOLO el texto del usuario
+      final res = await gemini.analyzeText(input);
       ref.read(lastEmotionProvider.notifier).state = res;
 
-      // 2) guarda en DB
+      final isOutOfScope = _isOutOfScopeResult(
+        emotion: res.emotion,
+        severity: res.severity,
+        score: res.score,
+        advice: res.advice,
+      );
+
+      if (isOutOfScope) {
+        // ❌ NO guardamos en emotion_entries
+        // ❌ NO añadimos al _history
+        // ✅ Solo mostramos el mensaje al usuario
+        setState(() {
+          _rEmotion = 'Neutral';
+          _rSeverity = 0;
+          _rScore = 0;
+          _rAdvice = res.advice;
+          _showResult = true;
+          _textCtrl.clear();
+        });
+        return;
+      }
+
+      // 2) Solo si es un análisis válido, guardamos en DB
       final uid = Supabase.instance.client.auth.currentUser?.id;
       if (uid == null) {
         if (!mounted) return;
@@ -181,7 +201,7 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
         );
       }
 
-      // 3) agrega al final del listado para ver el nuevo sin recargar
+      // 3) Actualizamos la lista en memoria
       final now = DateTime.now().toUtc();
       setState(() {
         _history.add({
@@ -195,7 +215,6 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
         });
         _textCtrl.clear();
 
-        // 4) activa overlay con el resultado
         _rEmotion = res.emotion;
         _rSeverity = res.severity;
         _rScore = res.score;
@@ -203,7 +222,6 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
         _showResult = true;
       });
 
-      // baja scroll al final
       await Future.delayed(const Duration(milliseconds: 30));
       if (_listCtrl.hasClients) {
         _listCtrl.animateTo(
@@ -212,8 +230,6 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
           curve: Curves.easeOut,
         );
       }
-
-      // (Quitamos el diálogo "Severidad alta" para no duplicar con el overlay)
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -242,7 +258,7 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
         children: [
           Column(
             children: [
-              // LISTADO (viejo → nuevo)
+              // LISTADO HISTORIAL
               Expanded(
                 child: _history.isEmpty
                     ? const Center(
@@ -324,7 +340,8 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
                                             ),
                                             Chip(
                                               label: Text(
-                                                  'Sev $sev/100 • ${(score * 100).toStringAsFixed(0)}%'),
+                                                'Sev $sev/100 • ${(score * 100).toStringAsFixed(0)}%',
+                                              ),
                                               visualDensity:
                                                   VisualDensity.compact,
                                             ),
@@ -341,7 +358,7 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
                       ),
               ),
 
-              // ENTRADA + ACCIONES (fijadas abajo)
+              // INPUT + BOTONES
               SafeArea(
                 top: false,
                 child: Column(
@@ -358,7 +375,9 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
                           hintText: '¿Cómo te sientes? Escríbelo aquí…',
                           filled: true,
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(12),
+                            ),
                           ),
                         ),
                       ),
@@ -396,17 +415,16 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
             ],
           ),
 
-          // === Overlay con el resultado del análisis (solo después de presionar "Analizar") ===
+          // OVERLAY RESULTADO
           if (_showResult)
             Positioned.fill(
               child: GestureDetector(
-                onTap: () =>
-                    setState(() => _showResult = false), // cerrar tocando fuera
+                onTap: () => setState(() => _showResult = false),
                 child: Container(
-                  color: Colors.black54, // fondo semi-transparente
+                  color: Colors.black54,
                   alignment: Alignment.center,
                   child: GestureDetector(
-                    onTap: () {}, // evita cerrar al tocar la tarjeta
+                    onTap: () {},
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 520),
                       child: Card(
@@ -431,14 +449,13 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
                                           .textTheme
                                           .titleMedium
                                           ?.copyWith(
-                                              fontWeight: FontWeight.w600),
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                     ),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 12),
-
-                              // Chips de emoción / severidad / score
                               Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
@@ -451,17 +468,16 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
                                     ),
                                   if (_rSeverity != null)
                                     Chip(
-                                      label: Text('Severidad $_rSeverity/100'
-                                          '${_rScore != null ? " • ${((_rScore! * 100).toStringAsFixed(0))}%" : ""}'),
+                                      label: Text(
+                                        'Severidad $_rSeverity/100'
+                                        '${_rScore != null ? " • ${((_rScore! * 100).toStringAsFixed(0))}%" : ""}',
+                                      ),
                                       visualDensity: VisualDensity.compact,
                                     ),
                                 ],
                               ),
-
                               const SizedBox(height: 10),
-
-                              // Barra visual de severidad
-                              if (_rSeverity != null) ...[
+                              if (_rSeverity != null && _rSeverity! > 0) ...[
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
                                   child: LinearProgressIndicator(
@@ -471,17 +487,12 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
                                 ),
                                 const SizedBox(height: 10),
                               ],
-
-                              // Consejo breve
                               if (_rAdvice != null && _rAdvice!.isNotEmpty)
                                 Text(
                                   _rAdvice!,
                                   style: Theme.of(context).textTheme.bodyMedium,
                                 ),
-
                               const SizedBox(height: 16),
-
-                              // Botones
                               Row(
                                 children: [
                                   if ((_rSeverity ?? 0) >= 75) ...[
@@ -512,11 +523,12 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
               ),
             ),
 
-          // loading global
           if (_loading)
             const Positioned.fill(
               child: IgnorePointer(
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(
+                  child: CircularProgressIndicator(),
+                ),
               ),
             ),
         ],

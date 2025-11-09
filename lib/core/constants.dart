@@ -1,4 +1,6 @@
-/// Application-wide constants for the Mental Wellness App
+// Application-wide constants for the Mental Wellness App
+
+/* Removed duplicate AppConstants definition; unified below */
 class AppConstants {
   // Private constructor to prevent instantiation
   AppConstants._();
@@ -45,9 +47,31 @@ class AppConstants {
 
   /// Default search radius in meters for finding nearby places
   static const double defaultSearchRadiusMeters = 2000.0;
+  /// Same radius as integer for components that require int
+  static const int defaultSearchRadiusMetersInt = 2000;
 
   /// Maximum number of places to return in search results
   static const int maxPlacesResults = 20;
+  /// Maximum number of places to return in Overpass queries
+  static const int maxPlacesLimit = 80;
+
+  /// Overpass public endpoints with CORS enabled
+  static const List<String> overpassEndpoints = <String>[
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+    'https://overpass.openstreetmap.ru/api/interpreter',
+  ];
+
+  /// Network timeout for external requests
+  static const Duration networkTimeout = Duration(seconds: 25);
+
+  /// OSRM routing base (public demo server)
+  static const String osrmRouteBase =
+      'https://router.project-osrm.org/route/v1';
+
+  /// Google Maps base for directions
+  static const String googleMapsDirBase =
+      'https://www.google.com/maps/dir/?api=1';
 
   // ============================================================================
   // STORAGE
@@ -198,6 +222,12 @@ class AppConstants {
 
   /// Error message for unexpected Supabase response
   static const String errorUnexpectedResponse = 'Respuesta inesperada del servidor';
+
+  /// Generic network error message
+  static const String errorNetwork = 'Error de red. Verifica tu conexión.';
+
+  /// Generic unexpected error message
+  static const String errorUnexpected = 'Ocurrió un error inesperado.';
 
   /// Error message when Gemini API key is missing
   static const String errorMissingGeminiKey =

@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'widgets/sign_up_header.dart';
+import 'widgets/sign_up_name_fields.dart';
+import 'widgets/sign_up_birth_fields.dart';
+import 'widgets/sign_up_email_phone_fields.dart';
+import 'widgets/sign_up_password_fields.dart';
+import 'widgets/sign_up_actions.dart';
+import '../profile/widgets/gender_selector.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -22,9 +29,6 @@ class _SignUpPageState extends State<SignUpPage> {
   int? _month;
   int? _year;
   String _gender = 'female';
-
-  bool _ob1 = true;
-  bool _ob2 = true;
   bool _loading = false;
 
   @override
@@ -133,7 +137,6 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     final insets = MediaQuery.of(context).viewInsets.bottom;
-    final theme = Theme.of(context);
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -156,212 +159,41 @@ class _SignUpPageState extends State<SignUpPage> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text('Crea una cuenta',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.headlineSmall),
-                      const SizedBox(height: 8),
-                      Text('Es rápido y fácil.',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodyMedium),
+                      const SignUpHeader(),
                       const SizedBox(height: 20),
-
-                      // Nombre y Apellido
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _firstName,
-                              textCapitalization: TextCapitalization.words,
-                              decoration: const InputDecoration(
-                                labelText: 'Nombre',
-                              ),
-                              validator: (v) => (v == null || v.trim().isEmpty)
-                                  ? 'Obligatorio'
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _lastName,
-                              textCapitalization: TextCapitalization.words,
-                              decoration: const InputDecoration(
-                                labelText: 'Apellido',
-                              ),
-                              validator: (v) => (v == null || v.trim().isEmpty)
-                                  ? 'Obligatorio'
-                                  : null,
-                            ),
-                          ),
-                        ],
+                      SignUpNameFields(
+                        firstName: _firstName,
+                        lastName: _lastName,
                       ),
                       const SizedBox(height: 16),
-
-                      // Fecha de nacimiento
-                      Text('Fecha de nacimiento',
-                          style: theme.textTheme.bodySmall),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: DropdownButtonFormField<int>(
-                              isExpanded: true,
-                              initialValue: _day,
-                              items: List.generate(
-                                31,
-                                (i) => DropdownMenuItem(
-                                  value: i + 1,
-                                  child: Text('${i + 1}'),
-                                ),
-                              ),
-                              onChanged: (v) => setState(() => _day = v),
-                              decoration:
-                                  const InputDecoration(labelText: 'Día'),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: DropdownButtonFormField<int>(
-                              isExpanded: true,
-                              initialValue: _month,
-                              items: List.generate(
-                                12,
-                                (i) => DropdownMenuItem(
-                                  value: i + 1,
-                                  child: Text(_monthName(i + 1)),
-                                ),
-                              ),
-                              onChanged: (v) => setState(() => _month = v),
-                              decoration:
-                                  const InputDecoration(labelText: 'Mes'),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: DropdownButtonFormField<int>(
-                              isExpanded: true,
-                              initialValue: _year,
-                              items: List.generate(
-                                100,
-                                (i) {
-                                  final y = DateTime.now().year - i;
-                                  return DropdownMenuItem(
-                                    value: y,
-                                    child: Text('$y'),
-                                  );
-                                },
-                              ),
-                              onChanged: (v) => setState(() => _year = v),
-                              decoration:
-                                  const InputDecoration(labelText: 'Año'),
-                            ),
-                          ),
-                        ],
+                      SignUpBirthFields(
+                        day: _day,
+                        month: _month,
+                        year: _year,
+                        onDayChanged: (v) => setState(() => _day = v),
+                        onMonthChanged: (v) => setState(() => _month = v),
+                        onYearChanged: (v) => setState(() => _year = v),
                       ),
                       const SizedBox(height: 16),
-
-                      // Género
-                      Text('Género', style: theme.textTheme.bodySmall),
-                      const SizedBox(height: 6),
-                      SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment(value: 'female', label: Text('Mujer')),
-                          ButtonSegment(value: 'male', label: Text('Hombre')),
-                          ButtonSegment(
-                              value: 'custom', label: Text('Personalizado')),
-                        ],
-                        selected: {_gender},
-                        onSelectionChanged: (s) =>
-                            setState(() => _gender = s.first),
+                      GenderSelector(
+                        gender: _gender,
+                        onChanged: (g) => setState(() => _gender = g),
                       ),
                       const SizedBox(height: 16),
-
-                      // Email
-                      TextFormField(
-                        controller: _email,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                            labelText: 'Correo electrónico'),
-                        validator: (v) {
-                          if (v == null || v.trim().isEmpty) {
-                            return 'Obligatorio';
-                          }
-                          if (!RegExp(r'.+@.+\..+').hasMatch(v.trim())) {
-                            return 'Correo no válido';
-                          }
-                          return null;
-                        },
+                      SignUpEmailPhoneFields(
+                        email: _email,
+                        phone: _phone,
                       ),
                       const SizedBox(height: 12),
-
-                      // Teléfono (opcional)
-                      TextFormField(
-                        controller: _phone,
-                        keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(
-                          labelText: 'Número de celular (opcional)',
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Password
-                      TextFormField(
-                        controller: _pass1,
-                        obscureText: _ob1,
-                        decoration: InputDecoration(
-                          labelText: 'Contraseña nueva',
-                          suffixIcon: IconButton(
-                            onPressed: () => setState(() => _ob1 = !_ob1),
-                            icon: Icon(
-                                _ob1 ? Icons.visibility : Icons.visibility_off),
-                          ),
-                        ),
-                        validator: (v) {
-                          if (v == null || v.length < 6) {
-                            return 'Mínimo 6 caracteres';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Confirmación
-                      TextFormField(
-                        controller: _pass2,
-                        obscureText: _ob2,
-                        decoration: InputDecoration(
-                          labelText: 'Confirmar contraseña',
-                          suffixIcon: IconButton(
-                            onPressed: () => setState(() => _ob2 = !_ob2),
-                            icon: Icon(
-                                _ob2 ? Icons.visibility : Icons.visibility_off),
-                          ),
-                        ),
-                        validator: (v) =>
-                            v != _pass1.text ? 'No coincide' : null,
+                      SignUpPasswordFields(
+                        password: _pass1,
+                        confirmPassword: _pass2,
                       ),
                       const SizedBox(height: 16),
-
-                      // Botón
-                      SizedBox(
-                        height: 48,
-                        child: FilledButton(
-                          onPressed: _loading ? null : _submit,
-                          child: _loading
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2))
-                              : const Text('Registrarte'),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Ir a Sign In
-                      TextButton(
-                        onPressed: () => context.go('/sign-in'),
-                        child: const Text('¿Ya tienes una cuenta?'),
+                      SignUpActions(
+                        submitting: _loading,
+                        onSubmit: _submit,
+                        onGoSignIn: () => context.go('/sign-in'),
                       ),
                     ],
                   ),
@@ -374,21 +206,4 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
-  String _monthName(int m) {
-    const names = [
-      'Ene',
-      'Feb',
-      'Mar',
-      'Abr',
-      'May',
-      'Jun',
-      'Jul',
-      'Ago',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dic'
-    ];
-    return names[m - 1];
-  }
 }

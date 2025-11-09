@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'widgets/sign_in_header.dart';
+import 'widgets/sign_in_email_field.dart';
+import 'widgets/sign_in_password_field.dart';
+import 'widgets/forgot_password_link.dart';
+import 'widgets/sign_in_actions.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -14,7 +19,6 @@ class _SignInPageState extends State<SignInPage> {
   final _email = TextEditingController();
   final _password = TextEditingController();
 
-  bool _obscure = true;
   bool _loading = false;
 
   @override
@@ -80,7 +84,6 @@ class _SignInPageState extends State<SignInPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
@@ -108,98 +111,21 @@ class _SignInPageState extends State<SignInPage> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              'Bienestar Emocional',
-                              style: theme.textTheme.headlineSmall,
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Inicia sesión para continuar',
-                              style: theme.textTheme.bodyMedium,
-                            ),
+                            const SignInHeader(),
                             const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _email,
-                              keyboardType: TextInputType.emailAddress,
-                              decoration: const InputDecoration(
-                                labelText: 'Correo electrónico',
-                                border: OutlineInputBorder(),
-                              ),
-                              validator: (v) {
-                                if (v == null || v.trim().isEmpty) {
-                                  return 'Requerido';
-                                }
-                                if (!v.contains('@')) {
-                                  return 'Correo inválido';
-                                }
-                                return null;
-                              },
-                            ),
+                            SignInEmailField(controller: _email),
                             const SizedBox(height: 12),
-                            TextFormField(
+                            SignInPasswordField(
                               controller: _password,
-                              obscureText: _obscure,
-                              decoration: InputDecoration(
-                                labelText: 'Contraseña',
-                                border: const OutlineInputBorder(),
-                                suffixIcon: IconButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      _obscure = !_obscure;
-                                    });
-                                  },
-                                  icon: Icon(
-                                    _obscure
-                                        ? Icons.visibility
-                                        : Icons.visibility_off,
-                                  ),
-                                  tooltip: _obscure ? 'Mostrar' : 'Ocultar',
-                                ),
-                              ),
-                              onFieldSubmitted: (_) => _signIn(),
-                              validator: (v) =>
-                                  (v == null || v.isEmpty) ? 'Requerido' : null,
+                              onSubmit: _signIn,
                             ),
                             const SizedBox(height: 8),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: TextButton(
-                                onPressed: _resetPassword,
-                                child: const Text(
-                                  '¿Olvidaste tu contraseña?',
-                                ),
-                              ),
-                            ),
+                            ForgotPasswordLink(onPressed: _resetPassword),
                             const SizedBox(height: 8),
-                            SizedBox(
-                              width: 220,
-                              height: 44,
-                              child: FilledButton(
-                                onPressed: _loading ? null : _signIn,
-                                child: _loading
-                                    ? const SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation(
-                                            Colors.white,
-                                          ),
-                                        ),
-                                      )
-                                    : const Text('Iniciar sesión'),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text('¿No tienes cuenta?'),
-                                TextButton(
-                                  onPressed: () => context.go('/sign-up'),
-                                  child: const Text('Crear cuenta'),
-                                ),
-                              ],
+                            SignInActions(
+                              loading: _loading,
+                              onSubmit: _signIn,
+                              onGoSignUp: () => context.go('/sign-up'),
                             ),
                           ],
                         ),

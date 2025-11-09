@@ -1,0 +1,1 @@
+enum TransportMode { walking, driving }

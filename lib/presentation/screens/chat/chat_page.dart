@@ -2,11 +2,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../data/repositories/chat_repository.dart';
 import '../../providers.dart';
+import 'widgets/message_list.dart';
+import 'widgets/message_input.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
   const ChatPage({super.key});
@@ -137,25 +138,12 @@ class _CP extends ConsumerState<ChatPage> {
     }
   }
 
-  // ---------- Helpers de fecha ----------
+  // ---------- Helpers ----------
   DateTime _parseDt(dynamic v) {
     if (v is DateTime) return v;
     return DateTime.tryParse('$v') ?? DateTime.now();
   }
-
-  bool _sameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
-
-  String _dayLabel(BuildContext context, DateTime dt) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final that = DateTime(dt.year, dt.month, dt.day);
-    final locale = Localizations.localeOf(context).toString();
-
-    if (that == today) return 'Hoy';
-    if (that == today.subtract(const Duration(days: 1))) return 'Ayer';
-    return DateFormat.yMMMMd(locale).format(dt);
-  }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -187,194 +175,14 @@ class _CP extends ConsumerState<ChatPage> {
           Expanded(
             child: _loadingInit
                 ? const Center(child: CircularProgressIndicator())
-                : ListView.builder(
+                : MessageList(
+                    messages: _messages,
+                    assistantTyping: _assistantTyping,
                     controller: _scroll,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                    // mensajes + 1 fila extra si el asistente está "escribiendo…"
-                    itemCount: _messages.length + (_assistantTyping ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      // Fila de "escribiendo…"
-                      final isTypingRow =
-                          _assistantTyping && index == _messages.length;
-                      if (isTypingRow) {
-                        return const _TypingBubble();
-                      }
-
-                      final m = _messages[index];
-                      final isUser = m['role'] == 'user';
-                      final dt = _parseDt(m['created_at']).toLocal();
-
-                      // ¿Debo mostrar separador de día antes de este mensaje?
-                      bool showHeader = false;
-                      if (index == 0) {
-                        showHeader = true;
-                      } else {
-                        final prevDt =
-                            _parseDt(_messages[index - 1]['created_at'])
-                                .toLocal();
-                        showHeader = !_sameDay(prevDt, dt);
-                      }
-
-                      final bubble = Align(
-                        alignment: isUser
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 720),
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(vertical: 6),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: isUser
-                                  ? Theme.of(context)
-                                      .colorScheme
-                                      .primaryContainer
-                                  : Theme.of(context)
-                                      .colorScheme
-                                      .surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '${m['content']}',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ),
-                        ),
-                      );
-
-                      if (!showHeader) return bubble;
-
-                      // Encabeza con separador de fecha
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _DateDivider(label: _dayLabel(context, dt)),
-                          bubble,
-                        ],
-                      );
-                    },
                   ),
           ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _input,
-                      minLines: 1,
-                      maxLines: 5,
-                      textInputAction: TextInputAction.newline,
-                      onSubmitted: (_) => _send(),
-                      decoration: const InputDecoration(
-                        hintText: 'Escribe aquí…',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                        ),
-                        filled: true,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton.filled(
-                    onPressed: _send,
-                    icon: const Icon(Icons.send),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          MessageInput(controller: _input, onSend: _send),
         ],
-      ),
-    );
-  }
-}
-
-/// Separador centrado con la fecha del día
-class _DateDivider extends StatelessWidget {
-  final String label;
-  const _DateDivider({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final color =
-        Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Expanded(child: Divider(color: color)),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(label,
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelMedium
-                      ?.copyWith(color: color)),
-            ),
-          ),
-          Expanded(child: Divider(color: color)),
-        ],
-      ),
-    );
-  }
-}
-
-/// Burbuja “escribiendo…” con 3 puntitos animados simples
-class _TypingBubble extends StatefulWidget {
-  const _TypingBubble();
-
-  @override
-  State<_TypingBubble> createState() => _TypingBubbleState();
-}
-
-class _TypingBubbleState extends State<_TypingBubble> {
-  int _dots = 1;
-  Timer? _t;
-
-  @override
-  void initState() {
-    super.initState();
-    _t = Timer.periodic(const Duration(milliseconds: 400), (_) {
-      setState(() => _dots = _dots % 3 + 1);
-    });
-  }
-
-  @override
-  void dispose() {
-    _t?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final text = 'Escribiendo${'.' * _dots}';
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
-        child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
-        ),
       ),
     );
   }

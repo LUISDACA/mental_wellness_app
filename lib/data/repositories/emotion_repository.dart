@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/constants.dart';
 import '../../core/logger.dart';
+import '../../core/errors.dart';
 
 class EmotionRepository {
   final _db = Supabase.instance.client;
@@ -32,7 +33,7 @@ class EmotionRepository {
         stack: stack,
         tag: 'EmotionRepo',
       );
-      rethrow;
+      throw StateError(AppErrors.humanize(e));
     }
   }
 
@@ -65,7 +66,7 @@ class EmotionRepository {
         stack: stack,
         tag: 'EmotionRepo',
       );
-      rethrow;
+      throw StateError(AppErrors.humanize(e));
     }
   }
 }

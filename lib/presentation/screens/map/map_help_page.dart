@@ -5,15 +5,23 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
+import '../../../core/constants.dart';
 
 import '../../providers.dart';
 import '../../../domain/models/place.dart';
+import 'models/transport_mode.dart';
+import 'widgets/transport_selector.dart';
+import 'widgets/radius_menu.dart';
+import 'widgets/filters_bar.dart';
+import 'widgets/map_canvas.dart';
+import 'widgets/route_info_banner.dart';
+import 'widgets/place_sheet.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 
-enum TransportMode { walking, driving }
+// TransportMode movido a models/transport_mode.dart
 
 class MapHelpPage extends ConsumerStatefulWidget {
   const MapHelpPage({super.key});
@@ -24,7 +32,7 @@ class MapHelpPage extends ConsumerStatefulWidget {
 
 class _MapHelpPageState extends ConsumerState<MapHelpPage> {
   LatLng? _center;
-  int _radius = 2000; // metros
+  int _radius = AppConstants.defaultSearchRadiusMetersInt; // metros
   bool _loading = false;
   List<Place> _places = const [];
 
@@ -133,105 +141,7 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
     }
   }
 
-  // ---------- UI helpers MEJORADOS ----------
-
-  // Iconos más modernos y distintivos
-  IconData _iconFor(String cat) {
-    switch (cat) {
-      case 'hospital':
-        return Icons.local_hospital_rounded;
-      case 'clinic':
-        return Icons.medical_services_rounded;
-      case 'doctors':
-        return Icons.healing_rounded;
-      case 'pharmacy':
-        return Icons.local_pharmacy_rounded;
-      case 'psychology':
-        return Icons.psychology_rounded;
-      case 'psychiatrist':
-        return Icons.self_improvement_rounded;
-      case 'counselling':
-        return Icons.forum_rounded;
-      case 'mental_health':
-        return Icons.favorite_rounded;
-      default:
-        return Icons.location_on_rounded;
-    }
-  }
-
-  // Colores personalizados para cada categoría
-  Color _colorFor(String cat) {
-    switch (cat) {
-      case 'hospital':
-        return Colors.red.shade700;
-      case 'clinic':
-        return Colors.orange.shade700;
-      case 'doctors':
-        return Colors.blue.shade700;
-      case 'pharmacy':
-        return Colors.green.shade700;
-      case 'psychology':
-        return Colors.purple.shade700;
-      case 'psychiatrist':
-        return Colors.indigo.shade700;
-      case 'counselling':
-        return Colors.teal.shade700;
-      case 'mental_health':
-        return Colors.pink.shade700;
-      default:
-        return Colors.grey.shade700;
-    }
-  }
-
-  // Color de fondo más claro para contraste
-  Color _bgColorFor(String cat) {
-    switch (cat) {
-      case 'hospital':
-        return Colors.red.shade50;
-      case 'clinic':
-        return Colors.orange.shade50;
-      case 'doctors':
-        return Colors.blue.shade50;
-      case 'pharmacy':
-        return Colors.green.shade50;
-      case 'psychology':
-        return Colors.purple.shade50;
-      case 'psychiatrist':
-        return Colors.indigo.shade50;
-      case 'counselling':
-        return Colors.teal.shade50;
-      case 'mental_health':
-        return Colors.pink.shade50;
-      default:
-        return Colors.grey.shade50;
-    }
-  }
-
-  String _labelFor(String cat) {
-    switch (cat) {
-      case 'psychology':
-        return 'Psicología';
-      case 'psychiatrist':
-        return 'Psiquiatría';
-      case 'counselling':
-        return 'Consejería';
-      case 'mental_health':
-        return 'Salud mental';
-      case 'hospital':
-        return 'Hospital';
-      case 'clinic':
-        return 'Clínica';
-      case 'doctors':
-        return 'Consultorios';
-      case 'pharmacy':
-        return 'Farmacia';
-      default:
-        return 'Otros';
-    }
-  }
-
-  String _modeLabel(TransportMode m) =>
-      m == TransportMode.walking ? 'Caminando' : 'Conduciendo';
+  // ---------- UI helpers ----------
 
   // ---------- Rutas ----------
   Future<void> _fetchRouteTo(Place p) async {
@@ -250,9 +160,9 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
       final profile = _mode == TransportMode.walking ? 'walking' : 'driving';
       // OSRM demo server (sin API key). Devuelve GeoJSON.
       final url =
-          'https://router.project-osrm.org/route/v1/$profile/${from.longitude},${from.latitude};${to.longitude},${to.latitude}?overview=full&geometries=geojson';
+          '${AppConstants.osrmRouteBase}/$profile/${from.longitude},${from.latitude};${to.longitude},${to.latitude}?overview=full&geometries=geojson';
       final res =
-          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 25));
+          await http.get(Uri.parse(url)).timeout(AppConstants.networkTimeout);
       if (res.statusCode != 200) {
         throw Exception('OSRM ${res.statusCode}');
       }
@@ -359,47 +269,17 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
       appBar: AppBar(
         title: const Text('Centros de ayuda cercanos'),
         actions: [
-          // modo
-          DropdownButtonHideUnderline(
-            child: DropdownButton<TransportMode>(
-              value: _mode,
-              items: const [
-                DropdownMenuItem(
-                  value: TransportMode.walking,
-                  child: Row(children: [
-                    Icon(Icons.directions_walk_rounded),
-                    SizedBox(width: 6),
-                    Text('Caminando')
-                  ]),
-                ),
-                DropdownMenuItem(
-                  value: TransportMode.driving,
-                  child: Row(children: [
-                    Icon(Icons.directions_car_rounded),
-                    SizedBox(width: 6),
-                    Text('Conduciendo')
-                  ]),
-                ),
-              ],
-              onChanged: (m) =>
-                  setState(() => _mode = m ?? TransportMode.walking),
-              icon: const Icon(Icons.route_rounded),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-            ),
+          TransportSelector(
+            mode: _mode,
+            onChanged: (m) =>
+                setState(() => _mode = m ?? TransportMode.walking),
           ),
-          PopupMenuButton<int>(
-            tooltip: 'Radio de búsqueda',
+          RadiusMenu(
+            value: _radius,
             onSelected: (v) async {
               setState(() => _radius = v);
               await _search();
             },
-            itemBuilder: (ctx) => const [
-              PopupMenuItem(value: 1000, child: Text('1 km')),
-              PopupMenuItem(value: 2000, child: Text('2 km')),
-              PopupMenuItem(value: 5000, child: Text('5 km')),
-              PopupMenuItem(value: 10000, child: Text('10 km')),
-            ],
-            icon: const Icon(Icons.radar_rounded),
           ),
           IconButton(
             tooltip: 'Rebuscar',
@@ -410,210 +290,73 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
       ),
       body: Column(
         children: [
-          // Filtros con chips coloreados
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-            child: Row(
-              children: _allCats.map((cat) {
-                final selected = _filters.contains(cat);
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    avatar: Icon(
-                      _iconFor(cat),
-                      size: 18,
-                      color: selected ? Colors.white : _colorFor(cat),
-                    ),
-                    label: Text(_labelFor(cat)),
-                    selected: selected,
-                    selectedColor: _colorFor(cat),
-                    checkmarkColor: Colors.white,
-                    labelStyle: TextStyle(
-                      color: selected ? Colors.white : null,
-                      fontWeight: selected ? FontWeight.bold : null,
-                    ),
-                    onSelected: (v) {
-                      setState(() {
-                        if (v) {
-                          _filters.add(cat);
-                        } else {
-                          _filters.remove(cat);
-                        }
-                      });
-                    },
-                  ),
-                );
-              }).toList(),
-            ),
+          FiltersBar(
+            allCategories: _allCats,
+            selected: _filters,
+            onAdd: (cat) => setState(() => _filters.add(cat)),
+            onRemove: (cat) => setState(() => _filters.remove(cat)),
           ),
           Expanded(
             child: Stack(
               children: [
-                FlutterMap(
+                MapCanvas(
                   mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: center,
-                    initialZoom: 13,
-                    interactionOptions: const InteractionOptions(
-                      flags: ~InteractiveFlag.rotate,
-                    ),
-                    onTap: (tapPos, latLng) async {
-                      setState(() {
-                        _center = latLng;
-                        // limpiar ruta si el usuario cambia el centro
-                        _routePoints = const [];
-                        _routeMeters = null;
-                        _routeSeconds = null;
-                      });
-                      _mapController.move(latLng, 14);
-                      await _search();
-                    },
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      subdomains: const ['a', 'b', 'c'],
-                      userAgentPackageName: 'mental_wellness_app',
-                    ),
-                    if (_center != null)
-                      CircleLayer(circles: [
-                        CircleMarker(
-                          point: _center!,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withValues(alpha: 0.15),
-                          borderColor: Theme.of(context).colorScheme.primary,
-                          borderStrokeWidth: 2,
-                          radius: (_radius / 2).toDouble(),
-                        ),
-                      ]),
-                    // Polyline de la ruta
-                    if (_routePoints.isNotEmpty)
-                      PolylineLayer(
-                        polylines: [
-                          Polyline(
-                            points: _routePoints,
-                            strokeWidth: 4,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ],
-                      ),
-                    // Marcadores MEJORADOS
-                    MarkerLayer(
-                      markers: [
-                        // Marcador de mi ubicación mejorado
-                        if (_center != null)
-                          Marker(
-                            point: _center!,
-                            width: 48,
-                            height: 48,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                // Efecto de pulso
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.blue.withValues(alpha: 0.2),
-                                  ),
-                                ),
-                                Container(
-                                  width: 36,
-                                  height: 36,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.blue.withValues(alpha: 0.4),
-                                  ),
-                                ),
-                                Container(
-                                  width: 24,
-                                  height: 24,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.blue,
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: 2,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color:
-                                            Colors.black.withValues(alpha: 0.2),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Icon(
-                                    Icons.person_pin,
-                                    size: 16,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        // Marcadores de lugares con diseño mejorado
-                        for (final p in visiblePlaces)
-                          Marker(
-                            width: 56,
-                            height: 56,
-                            point: LatLng(p.lat, p.lon),
-                            child: GestureDetector(
-                              onTap: () => _showPlace(p),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  // Pin con sombra
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: _bgColorFor(p.category),
-                                      border: Border.all(
-                                        color: _colorFor(p.category),
-                                        width: 2,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black
-                                              .withValues(alpha: 0.3),
-                                          blurRadius: 6,
-                                          offset: const Offset(0, 3),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Icon(
-                                      _iconFor(p.category),
-                                      size: 24,
-                                      color: _colorFor(p.category),
-                                    ),
-                                  ),
-                                  // Punta del pin
-                                  Positioned(
-                                    bottom: 6,
-                                    child: Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: BoxDecoration(
-                                        color: _colorFor(p.category),
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
+                  center: center,
+                  radiusMeters: _radius,
+                  routePoints: _routePoints,
+                  places: visiblePlaces,
+                  onTap: (latLng) async {
+                    setState(() {
+                      _center = latLng;
+                      _routePoints = const [];
+                      _routeMeters = null;
+                      _routeSeconds = null;
+                    });
+                    _mapController.move(latLng, 14);
+                    await _search();
+                  },
+                  onPlaceTap: (p) async {
+                    final c = _center;
+                    final distanceMeters = (c == null)
+                        ? null
+                        : _haversine(c, LatLng(p.lat, p.lon));
+                    await showPlaceSheet(
+                      context: context,
+                      place: p,
+                      mode: _mode,
+                      distanceMeters: distanceMeters,
+                      onRoute: () async {
+                        await _fetchRouteTo(p);
+                      },
+                      onOpenMaps: () async {
+                        final cc = _center;
+                        if (cc != null) {
+                          await _openInGoogleMaps(
+                            originLat: cc.latitude,
+                            originLon: cc.longitude,
+                            destLat: p.lat,
+                            destLon: p.lon,
+                            label: p.name,
+                          );
+                        } else {
+                          final url = Uri.parse(
+                              'https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}(${Uri.encodeComponent(p.name)})');
+                          await _launchUri(url);
+                        }
+                      },
+                      onCall: p.tags['phone'] != null
+                          ? () async {
+                              await _launchUri(
+                                  Uri(scheme: 'tel', path: '${p.tags['phone']}'));
+                            }
+                          : null,
+                      onVisitWebsite: p.tags['website'] != null
+                          ? () async {
+                              await _launchUri(Uri.parse('${p.tags['website']}'));
+                            }
+                          : null,
+                    );
+                  },
                 ),
                 if (_loading)
                   const Positioned.fill(
@@ -628,74 +371,17 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
                     top: 10,
                     left: 12,
                     right: 12,
-                    child: Card(
-                      elevation: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                _mode == TransportMode.walking
-                                    ? Icons.directions_walk_rounded
-                                    : Icons.directions_car_rounded,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    '${(_routeMeters! / 1000).toStringAsFixed(2)} km',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                  ),
-                                  Text(
-                                    '${_formatDuration(_routeSeconds!)} (${_modeLabel(_mode)})',
-                                    style:
-                                        Theme.of(context).textTheme.bodySmall,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              tooltip: 'Limpiar ruta',
-                              onPressed: () {
-                                setState(() {
-                                  _routePoints = const [];
-                                  _routeMeters = null;
-                                  _routeSeconds = null;
-                                });
-                              },
-                              icon: const Icon(Icons.close_rounded),
-                              style: IconButton.styleFrom(
-                                backgroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .errorContainer,
-                                foregroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .onErrorContainer,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    child: RouteInfoBanner(
+                      meters: _routeMeters!,
+                      seconds: _routeSeconds!,
+                      mode: _mode,
+                      onClear: () {
+                        setState(() {
+                          _routePoints = const [];
+                          _routeMeters = null;
+                          _routeSeconds = null;
+                        });
+                      },
                     ),
                   ),
               ],
@@ -710,146 +396,7 @@ class _MapHelpPageState extends ConsumerState<MapHelpPage> {
       ),
     );
   }
-
-  Future<void> _showPlace(Place p) async {
-    if (!mounted) return;
-    final center = _center;
-    final distanceMeters =
-        (center == null) ? null : _haversine(center, LatLng(p.lat, p.lon));
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: _bgColorFor(p.category),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                _iconFor(p.category),
-                color: _colorFor(p.category),
-                size: 28,
-              ),
-            ),
-            title: Text(
-              p.name,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text(
-              [
-                _labelFor(p.category),
-                if (distanceMeters != null) '• ${_fmtMeters(distanceMeters)}',
-              ].join(' '),
-            ),
-          ),
-          const Divider(),
-          if (p.tags['phone'] != null)
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.call_rounded, color: Colors.green.shade700),
-              ),
-              title: Text('${p.tags['phone']}'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () =>
-                  _launchUri(Uri(scheme: 'tel', path: '${p.tags['phone']}')),
-            ),
-          if (p.tags['website'] != null)
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.public_rounded, color: Colors.blue.shade700),
-              ),
-              title: const Text('Sitio web'),
-              subtitle: Text(
-                '${p.tags['website']}',
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: const Icon(Icons.open_in_new_rounded),
-              onTap: () => _launchUri(Uri.parse('${p.tags['website']}')),
-            ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    Navigator.of(context).pop();
-                    await _fetchRouteTo(p);
-                  },
-                  icon: Icon(
-                    _mode == TransportMode.walking
-                        ? Icons.directions_walk_rounded
-                        : Icons.directions_car_rounded,
-                  ),
-                  label: Text('Ruta (${_modeLabel(_mode)})'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () async {
-                    Navigator.of(context).pop();
-                    final c = _center;
-                    if (c != null) {
-                      await _openInGoogleMaps(
-                        originLat: c.latitude,
-                        originLon: c.longitude,
-                        destLat: p.lat,
-                        destLon: p.lon,
-                        label: p.name,
-                      );
-                    } else {
-                      final url = Uri.parse(
-                          'https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}(${Uri.encodeComponent(p.name)})');
-                      await _launchUri(url);
-                    }
-                  },
-                  icon: const Icon(Icons.map_rounded),
-                  label: const Text('Google Maps'),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-        ]),
-      ),
-    );
-  }
-
   // --- util ---
-  String _fmtMeters(double m) {
-    if (m < 1000) return '${m.toStringAsFixed(0)} m';
-    return '${(m / 1000).toStringAsFixed(2)} km';
-  }
-
-  String _formatDuration(double secs) {
-    final m = (secs / 60).round();
-    if (m < 60) return '$m min';
-    final h = m ~/ 60;
-    final mm = m % 60;
-    if (mm == 0) return '$h h';
-    return '$h h $mm min';
-  }
-
   Future<void> _launchUri(Uri uri) async {
     try {
       if (kIsWeb) {

@@ -1,11 +1,17 @@
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../data/services/profile_service.dart';
 import '../../../domain/models/profile.dart';
+import 'widgets/profile_header.dart';
+import 'widgets/name_fields.dart';
+import 'widgets/birth_field.dart';
+import 'widgets/contact_fields.dart';
+import 'widgets/save_bar.dart';
+import 'widgets/loading_overlay.dart';
+import 'widgets/gender_selector.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -165,7 +171,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final locale = Localizations.localeOf(context).toString();
     final avatarUrl = _publicAvatarUrl(_profile?.avatarPath);
 
     return Scaffold(
@@ -176,153 +181,31 @@ class _ProfilePageState extends State<ProfilePage> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
             child: Column(
               children: [
-                GestureDetector(
-                  onTap: _pickAvatar,
-                  child: Stack(
-                    children: [
-                      CircleAvatar(
-                        radius: 60,
-                        backgroundImage: (avatarUrl != null)
-                            ? NetworkImage(avatarUrl)
-                            : null,
-                        child: (avatarUrl == null)
-                            ? Icon(Icons.person,
-                                size: 60,
-                                color: Theme.of(context).colorScheme.primary)
-                            : null,
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: CircleAvatar(
-                          radius: 18,
-                          backgroundColor:
-                              Theme.of(context).colorScheme.primary,
-                          child: const Icon(Icons.camera_alt,
-                              size: 18, color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
+                ProfileHeader(
+                  avatarUrl: avatarUrl,
+                  email: _profile?.email,
+                  updatedAt: _profile?.updatedAt,
+                  onPickAvatar: _pickAvatar,
                 ),
-                const SizedBox(height: 8),
-                Center(
-                  child: Text(
-                    _profile?.email ?? '',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-                if (_profile != null) ...[
-                  const SizedBox(height: 4),
-                  Center(
-                    child: Text(
-                      'Actualizado: ${DateFormat.yMMMd(locale).add_Hm().format(_profile!.updatedAt.toLocal())}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
-                ],
                 const SizedBox(height: 16),
-
-                // Nombre / Apellido
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _firstCtrl,
-                        textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(
-                          labelText: 'Nombre',
-                          prefixIcon: Icon(Icons.badge_outlined),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: _lastCtrl,
-                        textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(
-                          labelText: 'Apellido',
-                          prefixIcon: Icon(Icons.badge_outlined),
-                        ),
-                      ),
-                    ),
-                  ],
+                NameFields(
+                  firstController: _firstCtrl,
+                  lastController: _lastCtrl,
                 ),
                 const SizedBox(height: 12),
-
-                // Fecha de nacimiento
-                OutlinedButton.icon(
-                  onPressed: _pickBirthDate,
-                  icon: const Icon(Icons.cake_outlined),
-                  label: Text(
-                    _birthDate == null
-                        ? 'Fecha de nacimiento'
-                        : DateFormat.yMMMd(locale).format(_birthDate!),
-                  ),
+                BirthField(
+                  birthDate: _birthDate,
+                  onPick: _pickBirthDate,
                 ),
                 const SizedBox(height: 12),
-
-                // Género - CORREGIDO: Ahora con mejor diseño
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 12, bottom: 8),
-                      child: Text(
-                        'Género',
-                        style:
-                            Theme.of(context).textTheme.labelMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                      ),
-                    ),
-                    SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(
-                          value: 'female',
-                          label: Text('Mujer'),
-                          icon: Icon(Icons.female, size: 18),
-                        ),
-                        ButtonSegment(
-                          value: 'male',
-                          label: Text('Hombre'),
-                          icon: Icon(Icons.male, size: 18),
-                        ),
-                        ButtonSegment(
-                          value: 'custom',
-                          label: Text('Otro'),
-                          icon: Icon(Icons.person, size: 18),
-                        ),
-                      ],
-                      selected: {_gender},
-                      onSelectionChanged: (s) =>
-                          setState(() => _gender = s.first),
-                      style: const ButtonStyle(
-                        visualDensity: VisualDensity.compact,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                    ),
-                  ],
+                GenderSelector(
+                  gender: _gender,
+                  onChanged: (g) => setState(() => _gender = g),
                 ),
                 const SizedBox(height: 12),
-
-                // Teléfono / Dirección
-                TextField(
-                  controller: _phoneCtrl,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Teléfono',
-                    prefixIcon: Icon(Icons.phone_outlined),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _addrCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Dirección',
-                    prefixIcon: Icon(Icons.home_outlined),
-                  ),
+                ContactFields(
+                  phoneController: _phoneCtrl,
+                  addressController: _addrCtrl,
                 ),
               ],
             ),
@@ -332,41 +215,12 @@ class _ProfilePageState extends State<ProfilePage> {
             bottom: 0,
             left: 0,
             right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -3),
-                  ),
-                ],
-              ),
-              child: FilledButton.icon(
-                onPressed: _loading ? null : _save,
-                icon: _loading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation(Colors.white),
-                        ),
-                      )
-                    : const Icon(Icons.save),
-                label: const Text('Guardar cambios'),
-              ),
+            child: SaveBar(
+              loading: _loading,
+              onSave: _save,
             ),
           ),
-          if (_loading)
-            Positioned.fill(
-              child: Container(
-                color: Colors.black.withValues(alpha: 0.1),
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-            ),
+          LoadingOverlay(visible: _loading),
         ],
       ),
     );

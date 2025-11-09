@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../../domain/models/post.dart';
 import '../../core/constants.dart';
 import '../../core/logger.dart';
+import '../../core/errors.dart';
 
 class PostService {
   final SupabaseClient _sb = Supabase.instance.client;
@@ -107,7 +108,7 @@ class PostService {
         stack: stack,
         tag: 'PostService',
       );
-      rethrow;
+      throw StateError(AppErrors.humanize(e));
     }
   }
 

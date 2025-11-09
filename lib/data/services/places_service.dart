@@ -1,25 +1,22 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../core/constants.dart';
+import '../../core/errors.dart';
 import '../../domain/models/place.dart';
 
 class PlacesService {
   // Varias instancias públicas de Overpass con CORS. Usamos fallback.
-  static const _endpoints = <String>[
-    'https://overpass-api.de/api/interpreter',
-    'https://overpass.kumi.systems/api/interpreter',
-    'https://overpass.openstreetmap.ru/api/interpreter',
-  ];
 
   /// Busca lugares de ayuda cerca de [lat],[lon] en [radiusMeters].
   Future<List<Place>> searchNearby({
     required double lat,
     required double lon,
-    int radiusMeters = 2000,
-    int limit = 80,
+    int radiusMeters = AppConstants.defaultSearchRadiusMetersInt,
+    int limit = AppConstants.maxPlacesLimit,
   }) async {
     // Nodos y centros de vías/relaciones. Filtramos por amenities y etiquetas healthcare relevantes.
     final query = '''
-[out:json][timeout:25];
+[out:json][timeout:${AppConstants.networkTimeout.inSeconds}];
 (
   node(around:$radiusMeters,$lat,$lon)[amenity~"^(hospital|clinic|doctors|pharmacy)\$"];
   node(around:$radiusMeters,$lat,$lon)[healthcare~"(psycholog|psychiatr|counsell|mental)"];
@@ -32,11 +29,11 @@ out center $limit;
 ''';
 
     dynamic lastErr;
-    for (final url in _endpoints) {
+    for (final url in AppConstants.overpassEndpoints) {
       try {
         final res = await http.post(Uri.parse(url),
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: {'data': query}).timeout(const Duration(seconds: 25));
+            body: {'data': query}).timeout(AppConstants.networkTimeout);
 
         if (res.statusCode == 200) {
           final json = jsonDecode(res.body) as Map<String, dynamic>;
@@ -54,6 +51,7 @@ out center $limit;
         lastErr = e;
       }
     }
-    throw StateError('Overpass error: $lastErr');
+    // Si todos los endpoints fallan, devolvemos un error humanizado (network/unexpected)
+    throw StateError(AppErrors.humanize(lastErr));
   }
 }

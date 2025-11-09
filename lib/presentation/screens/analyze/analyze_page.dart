@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -10,6 +9,10 @@ import '../../../core/env.dart';
 import '../../../data/services/speech_service.dart';
 import '../../../data/services/profile_service.dart';
 import '../../providers.dart';
+import 'widgets/history_list.dart';
+import 'widgets/analyze_input.dart';
+import 'widgets/result_overlay.dart';
+import 'widgets/loading_overlay.dart';
 
 class AnalyzePage extends ConsumerStatefulWidget {
   const AnalyzePage({super.key});
@@ -260,277 +263,38 @@ class _AnalyzePageState extends ConsumerState<AnalyzePage> {
             children: [
               // LISTADO HISTORIAL
               Expanded(
-                child: _history.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Aún no tienes análisis guardados.\nEscribe o dicta cómo te sientes.',
-                          textAlign: TextAlign.center,
-                        ),
-                      )
-                    : ListView.separated(
-                        controller: _listCtrl,
-                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                        itemCount: _history.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (_, i) {
-                          final m = _history[i];
-                          final created =
-                              DateTime.tryParse('${m['created_at'] ?? ''}')
-                                      ?.toLocal() ??
-                                  DateTime.now();
-                          final txt = '${m['text_input'] ?? ''}';
-                          final emo = '${m['detected_emotion'] ?? 'neutral'}';
-                          final sev = (m['severity'] ?? 0) as int;
-                          final score = (m['score'] ?? 0.0) as num;
-
-                          final dateStr =
-                              DateFormat.yMMMMEEEEd(locale).add_Hm().format(
-                                    created,
-                                  );
-
-                          return Card(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest
-                                .withValues(alpha: 0.4),
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  CircleAvatar(
-                                    radius: 20,
-                                    backgroundImage: (_avatarUrl != null)
-                                        ? NetworkImage(_avatarUrl!)
-                                        : null,
-                                    child: (_avatarUrl == null)
-                                        ? const Icon(Icons.person)
-                                        : null,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          dateStr,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelLarge,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        if (txt.isNotEmpty)
-                                          Text(
-                                            txt,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodyMedium,
-                                          ),
-                                        const SizedBox(height: 8),
-                                        Wrap(
-                                          spacing: 8,
-                                          runSpacing: 8,
-                                          children: [
-                                            Chip(
-                                              label: Text(emo),
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                            ),
-                                            Chip(
-                                              label: Text(
-                                                'Sev $sev/100 • ${(score * 100).toStringAsFixed(0)}%',
-                                              ),
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                child: HistoryList(
+                  history: _history,
+                  controller: _listCtrl,
+                  avatarUrl: _avatarUrl,
+                  locale: locale,
+                ),
               ),
 
               // INPUT + BOTONES
-              SafeArea(
-                top: false,
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      child: TextField(
-                        controller: _textCtrl,
-                        minLines: 1,
-                        maxLines: 3,
-                        textInputAction: TextInputAction.newline,
-                        decoration: const InputDecoration(
-                          hintText: '¿Cómo te sientes? Escríbelo aquí…',
-                          filled: true,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: FilledButton.icon(
-                              onPressed: _onDictate,
-                              icon: Icon(
-                                _listening
-                                    ? Icons.stop_circle_outlined
-                                    : Icons.mic,
-                              ),
-                              label: Text(_listening ? 'Detener' : 'Dictar'),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: FilledButton.icon(
-                              onPressed: _onAnalyze,
-                              icon: const Icon(Icons.auto_graph),
-                              label: const Text('Analizar'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+              AnalyzeInput(
+                controller: _textCtrl,
+                listening: _listening,
+                onDictate: _onDictate,
+                onAnalyze: _onAnalyze,
               ),
             ],
           ),
 
           // OVERLAY RESULTADO
-          if (_showResult)
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: () => setState(() => _showResult = false),
-                child: Container(
-                  color: Colors.black54,
-                  alignment: Alignment.center,
-                  child: GestureDetector(
-                    onTap: () {},
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 520),
-                      child: Card(
-                        elevation: 8,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(Icons.auto_graph, size: 26),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'Análisis de tu emoción',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: [
-                                  if (_rEmotion != null &&
-                                      _rEmotion!.isNotEmpty)
-                                    Chip(
-                                      label: Text(_rEmotion!),
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                  if (_rSeverity != null)
-                                    Chip(
-                                      label: Text(
-                                        'Severidad $_rSeverity/100'
-                                        '${_rScore != null ? " • ${((_rScore! * 100).toStringAsFixed(0))}%" : ""}',
-                                      ),
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              if (_rSeverity != null && _rSeverity! > 0) ...[
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: LinearProgressIndicator(
-                                    value: (_rSeverity!.clamp(0, 100)) / 100.0,
-                                    minHeight: 8,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                              ],
-                              if (_rAdvice != null && _rAdvice!.isNotEmpty)
-                                Text(
-                                  _rAdvice!,
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  if ((_rSeverity ?? 0) >= 75) ...[
-                                    FilledButton.icon(
-                                      onPressed: () {
-                                        setState(() => _showResult = false);
-                                        context.go('/sos');
-                                      },
-                                      icon: const Icon(Icons.sos),
-                                      label: const Text('Ver SOS'),
-                                    ),
-                                    const SizedBox(width: 8),
-                                  ],
-                                  OutlinedButton(
-                                    onPressed: () =>
-                                        setState(() => _showResult = false),
-                                    child: const Text('Cerrar'),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          ResultOverlay(
+            visible: _showResult,
+            emotion: _rEmotion,
+            severity: _rSeverity,
+            score: _rScore,
+            advice: _rAdvice,
+            onClose: () => setState(() => _showResult = false),
+            onOpenSos: () {
+              context.go('/sos');
+            },
+          ),
 
-          if (_loading)
-            const Positioned.fill(
-              child: IgnorePointer(
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-            ),
+          LoadingOverlay(loading: _loading),
         ],
       ),
     );

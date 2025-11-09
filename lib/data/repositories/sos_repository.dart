@@ -2,6 +2,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/constants.dart';
 import '../../core/logger.dart';
+import '../../core/errors.dart';
 
 class SosRepository {
   final _sb = Supabase.instance.client;
@@ -43,7 +44,7 @@ class SosRepository {
         stack: stack,
         tag: 'SosRepo',
       );
-      rethrow;
+      throw StateError(AppErrors.humanize(e));
     }
   }
 
@@ -67,7 +68,7 @@ class SosRepository {
         stack: stack,
         tag: 'SosRepo',
       );
-      rethrow;
+      throw StateError(AppErrors.humanize(e));
     }
   }
 
@@ -85,7 +86,7 @@ class SosRepository {
         stack: stack,
         tag: 'SosRepo',
       );
-      rethrow;
+      throw StateError(AppErrors.humanize(e));
     }
   }
 
@@ -100,7 +101,7 @@ class SosRepository {
         stack: stack,
         tag: 'SosRepo',
       );
-      rethrow;
+      throw StateError(AppErrors.humanize(e));
     }
   }
 }

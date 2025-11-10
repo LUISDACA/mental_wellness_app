@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/env.dart';
-import '../../data/services/health_service.dart';
+import '../../../../core/env.dart';
+import '../../../../data/services/health_service.dart';
 
 class StatusBanner extends StatefulWidget {
   const StatusBanner({super.key});
@@ -35,7 +35,7 @@ class _StatusBannerState extends State<StatusBanner> {
         child: FutureBuilder<HealthCheckResult>(
           future: _future,
           builder: (context, snapshot) {
-            // Estado: cargando
+            // Cargando
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,7 +43,10 @@ class _StatusBannerState extends State<StatusBanner> {
                   Row(children: [
                     const Icon(Icons.self_improvement, size: 28),
                     const SizedBox(width: 12),
-                    Text('Preparando todo para ti…', style: style.titleMedium),
+                    Text(
+                      'Preparando todo para ti…',
+                      style: style.titleMedium,
+                    ),
                   ]),
                   const SizedBox(height: 12),
                   const LinearProgressIndicator(),
@@ -51,19 +54,26 @@ class _StatusBannerState extends State<StatusBanner> {
               );
             }
 
-            // Si hubo error al chequear, tratamos como "no disponible"
+            // Error raro en health check -> mostramos no disponible
             if (snapshot.hasError || !snapshot.hasData) {
               return _Unavailable(onRetry: _reload);
             }
 
-            // Resultado del health check (sin mostrar detalles técnicos)
             final r = snapshot.data!;
-            final hasEnvSupabase = Env.supabaseUrl.isNotEmpty;
-            final hasEnvGemini = Env.geminiApiKey.isNotEmpty;
-            final allOk =
-                hasEnvSupabase && hasEnvGemini && r.supabaseOk && r.geminiOk;
 
-            return allOk ? const _Available() : _Unavailable(onRetry: _reload);
+            // Supabase es crítico: requiere env configurado + ping ok.
+            final supabaseConfigured =
+                Env.supabaseUrl.isNotEmpty && Env.supabaseAnonKey.isNotEmpty;
+            final supabaseOk = supabaseConfigured && r.supabaseOk;
+
+            if (!supabaseOk) {
+              return _Unavailable(onRetry: _reload);
+            }
+
+            // IA opcional: si aiOk == false, mostramos "listos" pero con nota suave.
+            final aiLimited = !r.aiOk;
+
+            return _Available(aiLimited: aiLimited);
           },
         ),
       ),
@@ -72,11 +82,17 @@ class _StatusBannerState extends State<StatusBanner> {
 }
 
 class _Available extends StatelessWidget {
-  const _Available();
+  final bool aiLimited;
+  const _Available({this.aiLimited = false});
 
   @override
   Widget build(BuildContext context) {
     final style = Theme.of(context).textTheme;
+
+    final subtitle = aiLimited
+        ? 'Estamos listos para acompañarte. Algunas funciones de IA pueden estar limitadas, pero puedes analizar tus emociones con el modo básico, chatear y revisar tu historial.'
+        : 'Estamos listos para acompañarte. Puedes analizar tu emoción, hablar con el chat empático y revisar tu historial cuando lo necesites.';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -91,10 +107,7 @@ class _Available extends StatelessWidget {
           ),
         ]),
         const SizedBox(height: 8),
-        Text(
-          'Cuando lo necesites, te acompañamos. Puedes analizar tu emoción, hablar con el chat o revisar tu historial. ¿Por dónde empezamos?',
-          style: style.bodyMedium,
-        ),
+        Text(subtitle, style: style.bodyMedium),
       ],
     );
   }
@@ -107,6 +120,7 @@ class _Unavailable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

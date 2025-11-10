@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../widgets/status_banner.dart';
+import 'widgets/status_banner.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});

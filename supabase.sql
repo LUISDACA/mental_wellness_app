@@ -743,6 +743,37 @@ end$$;
 create index if not exists emotion_entries_user_created_idx
     on public.emotion_entries (user_id, created_at);
 
+-- Tabla sencilla para verificar conexión desde la app
+create table if not exists public.app_health (
+  id bigint generated always as identity primary key,
+  label text not null default 'ok',
+  created_at timestamptz not null default now()
+);
+
+-- Habilitar RLS
+alter table public.app_health enable row level security;
+
+-- Política: permitir SELECT público (anon incluido)
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'app_health'
+      and policyname = 'Public read app_health'
+  ) then
+    create policy "Public read app_health"
+      on public.app_health
+      for select
+      using (true);
+  end if;
+end$$;
+
+-- Insertar al menos un registro para que el SELECT .limit(1) siempre tenga algo
+insert into public.app_health (label)
+values ('ok')
+on conflict do nothing;
+
 -- =========================================
 -- FIN
 -- =========================================
